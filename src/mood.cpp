@@ -1,54 +1,33 @@
 #include "mood.h"
 
 // ASCII equivalent
-const String palnagotchi_moods[] = {
-    "(v__v)",  // 0 - sleeping
-    "(=__=)",  // 1 - awakening
-    "(O__O)",  // 2 - awake
-    "( O_O)",  // 3 - observing (neutral) right
-    "(O_O )",  // 4 - observig (neutral) left
-    "( 0_0)",  // 5 - observing (happy) right
-    "(0_0 )",  // 6 - observing (happy) left
-    "(+__+)",  // 7 - intense
-    "(-@_@)",  // 8 - cool
-    "(0__0)",  // 9 - happy
-    "(^__^)",  // 10 - grateful
-    "(a__a)",  // 11 - excited
-    "(+__+)",  // 12 - smart
-    "(*__*)",  // 13 - friendly
-    "(@__@)",  // 14 - motivated
-    "(>__<)",  // 15 - demotivated
-    "(-__-)",  // 16 - bored
-    "(T_T )",  // 17 - sad
-    "(;__;)",  // 18 - lonely
-    "(X__X)",  // 19 - broken
-    "(#__#)",  // 20 - debugging,
-    "8====D",  // 21 - ultra random easter egg
+struct splash {
+  String face;
+  String splash;
 };
 
-const String palnagotchi_moods_desc[] = {
-    "Zzzz...",                               // 0 - sleeping
-    "...",                                   // 1 - awakening
-    "Ready for action!",                   // 2 - awake
-    "Hello there!",                       // 3 - observing (neutral) right
-    "I see you :)",                       // 4 - observig (neutral) left
-    "Can we have even more friends?",        // 5 - observing (happy) right
-    "Can we have even more friends?",        // 6 - observing (happy) left
-    "YEAH! So many pwnagotchis!",            // 7 - intense
-    "The coolest pal in the neighbourhood",  // 8 - cool
-    "Can we have even more friends?",        // 9 - happy
-    "I LOVE PWNAGOTCHIS!",                   // 10 - grateful
-    "That's how I like it.",                 // 11 - excited
-    "3.1415926535897932384626433832795",     // 12 - smart
-    "HEY YOU! LETS BE FRIENDS!",             // 13 - friendly
-    "IT RUNS! SUCK MA BALLZ!",               // 14 - motivated
-    "Why my life sucks? WHY",                // 15 - demotivated
-    "Seriously, let's go for a walk...",     // 16 - bored
-    "Get your hands off me...",              // 17 - sad
-    "Lonely, I am so lonely...",        // 18 - lonely
-    "It works on my end.",                   // 19 - broken
-    "Wtf? I didn't even touch it...",        // 20 - debugging,
-    "What?",                                 // 21 - ultra random easter egg
+splash mainFaces[] = {
+  {"(v__v)", "Zzzz...          "},
+  {"(=__=)", "...              "},
+  {"(O__O)", "Ready for action!"},
+  {"( O_O)", "Hello there!     "},
+  {"(O_O )", "I see you :)     "},
+  {"( 0_0)", "Wanna meet?      "},
+  {"(0_0 )", "Oh, hello        "},
+  {"(+__+)", "Working...       "},
+  {"(-@_@)", "I am so cool!    "},
+  {"(0__0)", "I like this      "},
+  {"(^__^)", "I LOVE PWNAGOTCHI"},
+  {"(a__a)", "So much to explore"},
+  {"(+__+)", "Hacking NASA...  "},
+  {"(*__*)", "LETS BE FRIENDS! "},
+  {"(@__@)", "IT RUNS!         "},
+  {"(>__<)", "Why my life sucks?"},
+  {"(-__-)", "Let's go for a walk!"},
+  {"(T_T )", "Get your hands off me"},
+  {"(;__;)", "I am so lonely..."},
+  {"(X__X)", "It works with me."},
+  {"(#__#)", "I didn't touch it"},
 };
 
 uint8_t current_mood = 0;
@@ -68,12 +47,12 @@ void setMood(uint8_t mood, String face, String phrase, bool broken) {
   if (face != "") {
     current_face = face;
   } else {
-    current_face = palnagotchi_moods[current_mood];
+    current_face = mainFaces[current_mood].face;
   }
 
   if (phrase != "") {
     current_phrase = phrase;
   } else {
-    current_phrase = palnagotchi_moods_desc[current_mood];
+    current_phrase = mainFaces[current_mood].splash;
   }
 }
