@@ -1410,7 +1410,7 @@ inline void updateM5(){
 
 bool sleep_mode = false;
 
-inline void sleepFunction(){
+void sleepFunction(){
   if(M5.BtnA.isPressed()){
     if(sleep_mode == false){
       delay(250);

