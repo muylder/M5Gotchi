@@ -13,6 +13,8 @@
 #define ROW_SIZE 40
 #define PADDING 10
 
+//#define USE_EXPERIMENTAL_APPS
+
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
 M5Canvas canvas_bot(&M5.Display);
@@ -86,12 +88,14 @@ String rickroll_ssids[]{
 };
 
 menu main_menu[] = {
-    {"Wifi", 1},
+    {"Manual mode", 1},
+    {"Auto", 4},
+    #ifdef USE_EXPERIMENTAL_APPS
     {"Bluetooth", 2},
     {"IR", 3},
-    {"Pwngotchi", 4},
     {"Bad USB", 5},
-    {"Settings", 6}
+    #endif
+    {"Config", 6}
 };
 
 menu wifi_menu[] = {
@@ -101,7 +105,7 @@ menu wifi_menu[] = {
     {"Deauth", 23},
     {"Sniffing", 24}
 };
-
+#ifdef USE_EXPERIMENTAL_APPS
 menu bluetooth_menu[] = {
     {"BLE Spam", 25},
     {"Connect to phone", 26},
@@ -118,6 +122,7 @@ menu IR_menu[] = {
     {"Learn new Remote", 34},
     {"Import from SD", 35}
 };
+#endif
 
 menu pwngotchi_menu[] = {
     {"Turn on", 36},
@@ -243,13 +248,18 @@ void updateUi(bool show_toolbars) {
   if (menuID == 1) {
     menu_current_pages = 2;
     menu_len = 6;
+    #ifdef USE_EXPERIMENTAL_APPS
     drawMultiplePages(main_menu, 1, 6);
+    #else
+    drawMultiplePages(main_menu, 1, 3);
+    #endif
     drawMenu();
   } 
   else if (menuID == 2){
     drawSinglePage( wifi_menu , 2, 5);
     drawMenu();
   }
+  #ifdef USE_EXPERIMENTAL_APPS
   else if (menuID == 3){
     drawMultiplePages( bluetooth_menu , 3, 6);
     drawMenu();
@@ -258,6 +268,7 @@ void updateUi(bool show_toolbars) {
     drawMultiplePages( IR_menu , 4, 5);
     drawMenu();
   }
+  #endif
   else if (menuID == 5){
     drawMultiplePages( pwngotchi_menu , 5, 4);
     drawMenu();
@@ -528,8 +539,10 @@ void runApp(uint8_t appID){
   menuID = 0; 
   if(appID){
     if(appID == 1){drawSinglePage(wifi_menu, 2, 5);}
+    #ifdef USE_EXPERIMENTAL_APPS
     if(appID == 2){drawMultiplePages(bluetooth_menu, 3, 6);}
     if(appID == 3){drawSinglePage(IR_menu, 4, 5 );}
+    #endif
     if(appID == 4){drawSinglePage(pwngotchi_menu, 5 , 3 );}
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
     if(appID == 6){drawMultiplePages( settings_menu , 6, 7);}
@@ -1026,6 +1039,7 @@ void drawMenu() {
       //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
       runApp(wifi_menu[menu_current_opt].command);
     }
+    #ifdef USE_EXPERIMLENLAL_APPS
     else if(menuID == 3){
       //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
       runApp(bluetooth_menu[menu_current_opt].command);
@@ -1034,6 +1048,7 @@ void drawMenu() {
       //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
       runApp(IR_menu[menu_current_opt].command);
     }
+    #endif
     else if(menuID == 5){
       //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
       runApp(pwngotchi_menu[menu_current_opt].command);
