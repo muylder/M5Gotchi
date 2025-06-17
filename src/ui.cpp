@@ -2,18 +2,14 @@
 #include "lgfx/v1/misc/enum.hpp"
 #include "lgfx/v1/misc/DataWrapper.hpp"
 #include "HWCDC.h"
-#include <string>
+#include "Arduino.h"
 #include "ui.h"
 #include "updater.h"
-#include <Update.h>
 #include <FS.h>
 #include <SD.h>
 #include <WiFi.h>
 #include "EapolSniffer.h"
-#define ROW_SIZE 40
-#define PADDING 10
-
-//#define USE_EXPERIMENTAL_APPS
+#include "settings.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -141,7 +137,7 @@ menu settings_menu[] = {
     {"Power off", 46}
 };
 
-bool sound = 0;
+
 bool appRunning;
 bool userInputVar;
 uint8_t menu_current_pages = 1;
@@ -153,14 +149,12 @@ int32_t canvas_top_h;
 int32_t canvas_bot_h;
 int32_t canvas_peers_menu_h;
 int32_t canvas_peers_menu_w;
-String hostname = "dfku"; //TODO: add support for sd card here
 bool keyboard_changed = false;
 uint8_t menu_len;
 uint8_t menu_current_opt = 0;
 uint8_t menu_current_page = 1;  
 bool singlePage;
 uint8_t menuID = 0;
-bool activityReward;
 uint8_t currentBrightness = 100;
 String wifiChoice;
 uint8_t intWifiChoice;
@@ -168,8 +162,6 @@ bool apMode;
 String loginCaptured = "";
 String passCaptured = "";
 bool cloned;
-
-bool activityRewarded(){return activityReward;}
 
 void initUi() {
   M5.Display.setRotation(1);
@@ -922,6 +914,10 @@ void runApp(uint8_t appID){
       String name = userInput("New value", "Change Hostname to:", 5);
       if(name != ""){
         hostname = name;
+        if(saveSettings()){
+          return;
+        }
+        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
         return;
       }
       drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
@@ -950,7 +946,11 @@ void runApp(uint8_t appID){
       if(name<=255 && name!=0){
         logMessage(String(name));
         M5.Lcd.setBrightness(int(name));
-        currentBrightness = int(name);
+        brightness = int(name);
+        if(saveSettings()){
+          return;
+        }
+        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
       }
       else
       drawInfoBox("Error", "Invalid Value", String(name) , true, false);
@@ -959,9 +959,27 @@ void runApp(uint8_t appID){
       String selection[] = {"Off", "On"};
       delay(50);
       sound = drawMultiChoice("Sound", selection, 2, 6, 2);
+      if(saveSettings()){
+        return;
+      }
+      else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
     }
     if(appID == 43){
       WiFi.mode(WIFI_STA);
+      if(savedApSSID && savedAPPass){
+        WiFi.begin(savedApSSID, savedAPPass);
+        uint8_t counter;
+        while (counter<=10 && !WiFi.isConnected()) {
+          delay(1000);
+          drawInfoBox("Connecting", "Please wait...", "You will be soon redirected ", false, false);
+          counter++;
+        }
+        counter = 0;
+        if(WiFi.isConnected()){
+          drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+        }
+        return;
+      }
       int numNetworks = WiFi.scanNetworks();
       String wifinets[20];
       if (numNetworks == 0) {
@@ -980,6 +998,8 @@ void runApp(uint8_t appID){
       //String ssid = userInput("Wifi SSID", "Enter wifi name to connect.", 30);
       String password = userInput("Password", "Enter wifi password" , 30);
       WiFi.begin(WiFi.SSID(wifisel), password);
+      savedApSSID = WiFi.SSID(wifisel);
+      savedAPPass = password;
       uint8_t counter;
       while (counter<=10 && !WiFi.isConnected()) {
         delay(1000);
@@ -989,6 +1009,10 @@ void runApp(uint8_t appID){
       counter = 0;
       if(WiFi.isConnected()){
         drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+        if(saveSettings()){
+          return;
+        }
+        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
       }
       else{
         drawInfoBox("Error", "Connection failed", "Maybe wrong password...", true, false);

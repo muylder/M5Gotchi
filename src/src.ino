@@ -1,6 +1,7 @@
 #include "M5Cardputer.h"
 #include "M5Unified.h"
 #include "ui.h"
+#include "settings.h"
 
 uint8_t state;
 uint8_t activity = 14;
@@ -10,6 +11,7 @@ bool firstSoundEnable;
 bool isSoundPlayed = false;
 uint32_t last_mood_switch = 10001;
 uint8_t wakeUpList[] = {0, 1, 2};
+// Pin mapping from the official docs
 
 void initM5() {
   auto cfg = M5.config();
@@ -22,6 +24,13 @@ void setup() {
   Serial.begin(115200);
   initM5();
   initUi();
+  sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
+  if(initVars()){}
+  else{
+    drawInfoBox("ERROR!", "SD card is needed to work.", "Please insert it and restart", false, true);
+    while(true){delay(10);}
+  }
+  M5.Display.setBrightness(brightness);
   wakeUp();
 }
 
