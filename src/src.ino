@@ -52,6 +52,7 @@ void loop() {
   if (currentMillis >= interval) {
     interval = interval + 120000;  // Zaktualizowanie czasu ostatniego wykonania funkcji
     updateActivity();  // Wykonanie funkcji co 2 minuty
+    setMood(activity);
     logMessage("Mood changed");
   }
   
