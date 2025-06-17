@@ -977,8 +977,8 @@ void runApp(uint8_t appID){
         counter = 0;
         if(WiFi.isConnected()){
           drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+          return;
         }
-        return;
       }
       int numNetworks = WiFi.scanNetworks();
       String wifinets[20];
@@ -1445,7 +1445,7 @@ void sleepFunction(){
     }
     if(sleep_mode == true){
       delay(250);
-      M5.Lcd.setBrightness(returnBrightness());
+      M5.Lcd.setBrightness(brightness);
       initUi();
       sleep_mode = false;
     }
