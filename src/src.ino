@@ -55,7 +55,6 @@ void loop() {
     setMood(activity);
     logMessage("Mood changed");
   }
-  
 }
 
 void updateActivity(bool reward) {
