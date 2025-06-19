@@ -5,6 +5,5 @@ M5Cardputer based multi-purpose software designed to push the ESP chip to its ab
 # TODO
 - Update this fiel
 - add pwnagothi auto mode
-- improve ui
 - add update from github
 - relase :)

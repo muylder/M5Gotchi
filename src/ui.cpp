@@ -162,6 +162,7 @@ bool apMode;
 String loginCaptured = "";
 String passCaptured = "";
 bool cloned;
+String pwnagothiMode = "MANUAL";
 
 void initUi() {
   M5.Display.setRotation(1);
@@ -377,13 +378,21 @@ void drawTopCanvas() {
   canvas_top.setTextColor(BLACK);
   canvas_top.setColor(BLACK);
   canvas_top.setTextDatum(top_left);
-  canvas_top.drawString("M5Blaster v0.1", 0, 3);
+  canvas_top.drawString("CH:" + String(WiFi.channel()) + " AP: " + String(WiFi.scanComplete()), 0, 3);
   canvas_top.setTextDatum(top_right);
-  /*            part of original code 
-  char right_str[50] = "UPS 0%";
-  sprintf(right_str, "UPS", M5.Power.getBatteryLevel());
-  */
-  canvas_top.drawString("UPS " + String(M5.Power.getBatteryLevel()) + "%" , display_w, 3);
+  unsigned long ms = millis();
+
+  unsigned long seconds = ms / 1000;
+  unsigned int minutes = seconds / 60;
+  unsigned int hours = minutes / 60;
+
+  seconds = seconds % 60;
+  minutes = minutes % 60;
+
+  // Pad with zero if needed
+  char buffer[9];
+  sprintf(buffer, "%02u:%02u:%02lu", hours, minutes, seconds);
+  canvas_top.drawString("UPS " + String(M5.Power.getBatteryLevel()) + "%  UP:" + buffer , display_w, 3);
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
 
@@ -393,49 +402,49 @@ void drawBottomCanvas() {
   canvas_bot.setTextColor(BLACK);
   canvas_bot.setColor(BLACK);
   canvas_bot.setTextDatum(top_left);
+  uint16_t captures; //update later
+  uint16_t allTimeCaptures = pwned_ap;
+  canvas_bot.drawString("PWND: " + String(captures)+String(allTimeCaptures), 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";
     if(apMode){canvas_bot.drawString("Wifi: AP  " + wifiChoice, 0, 5);}
-    else {canvas_bot.drawString("Wifi:" + wifiStatus, 0, 5);}
   }
   else if(WiFi.status() == WL_CONNECTED){
     wifiStatus = "connected";
-    canvas_bot.drawString("Wifi:" + wifiStatus + " (" + WiFi.localIP().toString() + ")", 0, 5);
   }
   else if(WiFi.status() ==  WL_IDLE_STATUS){
     wifiStatus = "IDLE";
-    canvas_bot.drawString("Wifi:" + wifiStatus, 0, 5);
   }
   else if(WiFi.status() == WL_CONNECT_FAILED){
     wifiStatus = "error";
-    canvas_bot.drawString("Wifi:" + wifiStatus, 0, 5);
   }
   else if(WiFi.status() ==  WL_CONNECTION_LOST){
     wifiStatus = "lost";
-    canvas_bot.drawString("Wifi:" + wifiStatus, 0, 5);
   }
   else if(WiFi.status() ==  WL_DISCONNECTED){
     wifiStatus = "disconnected";
-    canvas_bot.drawString("Wifi:" + wifiStatus, 0, 5);
   }
   canvas_bot.setTextDatum(top_right);
-  canvas_bot.drawString("READY", display_w, 5);
+  canvas_bot.drawString(pwnagothiMode + " " + wifiStatus, display_w, 5);
   canvas_bot.drawLine(0, 0, display_w, 0);
 }
 
 void drawMood(String face, String phrase) {
   canvas_main.fillSprite(WHITE);
-  canvas_main.setTextSize(4);
+  canvas_main.setTextSize(1.5);
   canvas_main.setTextDatum(top_left);
+  canvas_main.setCursor(3, 10);
+  canvas_main.println(hostname + ">");
+  canvas_main.setTextSize(4);
   canvas_main.setCursor(5, 10);
   canvas_main.setTextColor(BLACK);
   canvas_main.setColor(BLACK);
-  canvas_main.drawString(face, 5 , 20);
+  //canvas_main.setTextStyle(BOLD);
+  canvas_main.drawString(face, 5 , 30);
   canvas_main.setTextSize(1.5);
-  String hostname_blank = multiplyChar(' ', sizeof(hostname) / 4);
-  canvas_main.setCursor(0, canvas_h - 35);
-  canvas_main.println(hostname + "> " + phrase);
+  canvas_main.setCursor(3, canvas_h - 30);
+  canvas_main.println("> " + phrase);
 }
 
 
