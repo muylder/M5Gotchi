@@ -1028,10 +1028,15 @@ void runApp(uint8_t appID){
       }
     }
     if(appID == 44){
-      String tempMenu[] = {"From SD", "From WIFI"};
+      String tempMenu[] = {"From SD", "From WIFI", "From Github"};
       uint8_t choice = drawMultiChoice("Update type", tempMenu, 2, 6, 4);
       if(choice == 0){updateFromSd();}
       else if(choice == 1){updateFromHTML();}
+      else if(choice == 2){
+        drawInfoBox("Updating...", "Updating from github...", "This may take a while...", false,false);
+        updateFromGithub();
+        drawInfoBox("ERROR!", "Update failed!", "Try again or contact dev", true, false);
+      }
       }
     if(appID == 45){
       drawInfoBox("ESPBlaster","v0.1 by Devsur11  ", "www.github.com/Devsur11 ", true, false);

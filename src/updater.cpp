@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <ESPAsyncWebServer.h>
 #include <Update.h>
+#include "githubUpdater.h"
 
 AsyncWebServer updateServer(80);
 
@@ -187,4 +188,12 @@ void rebootEspWithReason(String reason){
     logMessage(reason);
     delay(1000);
     ESP.restart();
+}
+
+void updateFromGithub() {
+  if (WiFi.status() == WL_CONNECTED) {
+    ota_update_from_url();
+  } else {
+    drawInfoBox("Error", "No WIFI connected", "Please connect to it first", true, false);
+  }
 }

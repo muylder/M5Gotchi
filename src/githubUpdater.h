@@ -1,0 +1,1 @@
+void ota_update_from_url();

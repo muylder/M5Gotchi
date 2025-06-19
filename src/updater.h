@@ -14,3 +14,4 @@ void updateFromFS(fs::FS &fs);
 void updateFromSd();
 void performUpdate(Stream &updateSource, size_t updateSize);
 void updateFromHTML();
+void updateFromGithub();
