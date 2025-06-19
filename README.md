@@ -2,15 +2,19 @@
 
 M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface.
 
-> ** WARNING: THIS FIRMWARE CAN BE USED IN WAYS THAT MAY VIOLATE LOCAL LAWS. YOU ARE RESPONSIBLE FOR YOUR OWN ACTIONS. DO NOT USE THIS FOR MALICIOUS PURPOSES.**
+> [!CAUTION]
+> THIS FIRMWARE CAN BE USED IN WAYS THAT MAY VIOLATE LOCAL LAWS. YOU ARE RESPONSIBLE FOR YOUR OWN ACTIONS. DO NOT USE THIS FOR MALICIOUS PURPOSES.
 > **THIS IS A RESEARCH TOOL DESIGNED FOR EDUCATIONAL AND LEGAL SECURITY TESTING PURPOSES ONLY.**
+> This tool is intended **only for legal research and educational purposes**.
+> Use of this firmware on unauthorized networks, or against devices without explicit permission, is **strictly prohibited** and **illegal in many countries**.
+> The author takes **no responsibility** for any misuse, damage, or legal consequences resulting from use of this software. Always comply with local laws and regulations.
 
 ---
 
 ##  Features
 
 - Full Pwnagothi functionality adapted for M5Cardputer
-- Manual Wi-Fi control via integrated keyboard UI
+- Manual Wi-Fi control via integrated keyboard UI making it first fully UI-controlled pwnagotchi
 - Automatic handshake capture using “Pwnagothi Auto Mode”
 - **Update firmware directly from GitHub, SD card, or built-in Web UI**
 - Planned support for advanced attack modes:
@@ -20,10 +24,8 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
   - BadBLE device impersonation
 
 ---
-
-##  SD Card Requirements
-
-An SD card is **required** for the firmware to function properly.
+> [!IMPORTANT]
+> An SD card is **required** for the firmware to function properly.
 
 ### SD Card File Structure
 
@@ -72,9 +74,9 @@ An SD card is **required** for the firmware to function properly.
 You can install PlatformIO using either:
 
 - **Visual Studio Code extension**
-  1. Install VS Code
-  2. Open Extensions → Search for "PlatformIO IDE"
-  3. Install and reload
+  - Install VS Code
+  - Open Extensions → Search for "PlatformIO IDE"
+  - Install and reload
 
 - **Command-line (CLI)**
   Follow instructions here: [https://platformio.org/install/cli](https://platformio.org/install/cli)
@@ -118,7 +120,7 @@ You can install PlatformIO using either:
 ---
 
 ## Examples
-
+[] Fill this section before relase!
 
 ---
 
@@ -140,11 +142,6 @@ To help out, fork this repo and open a PR.
 Join our Discord community for support, discussion, and sneak peeks at upcoming features.
 
 ---
-
-> ** LEGAL DISCLAIMER:**
-> This tool is intended **only for legal research and educational purposes**.
-> Use of this firmware on unauthorized networks, or against devices without explicit permission, is **strictly prohibited** and **illegal in many countries**.
-> The author takes **no responsibility** for any misuse, damage, or legal consequences resulting from use of this software. Always comply with local laws and regulations.
 
 # TODO
 - add pwnagothi auto mode
