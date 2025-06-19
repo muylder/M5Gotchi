@@ -1029,7 +1029,7 @@ void runApp(uint8_t appID){
     }
     if(appID == 44){
       String tempMenu[] = {"From SD", "From WIFI", "From Github"};
-      uint8_t choice = drawMultiChoice("Update type", tempMenu, 2, 6, 4);
+      uint8_t choice = drawMultiChoice("Update type", tempMenu, 3, 6, 4);
       if(choice == 0){updateFromSd();}
       else if(choice == 1){updateFromHTML();}
       else if(choice == 2){
@@ -1039,7 +1039,7 @@ void runApp(uint8_t appID){
       }
       }
     if(appID == 45){
-      drawInfoBox("ESPBlaster","v0.1 by Devsur11  ", "www.github.com/Devsur11 ", true, false);
+      drawInfoBox("ESPBlaster","v0.2 by Devsur11  ", "www.github.com/Devsur11 ", true, false);
     }
     if(appID == 46){
       M5.Display.fillScreen(TFT_BLACK);
