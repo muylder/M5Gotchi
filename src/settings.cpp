@@ -13,7 +13,7 @@ String savedApSSID;
 String savedAPPass;
 String whitelist;
 File FConf;
-bool pwnagothiMode;
+bool pwnagothiMode = false;
 uint8_t sessionCaptures;
 
 bool initVars(){

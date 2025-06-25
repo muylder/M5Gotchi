@@ -73,7 +73,7 @@ void addToWhitelist(String valueToAdd){
 
 String* parseWhitelist(){
     static String result[30]; // Static to persist after function ends
-    StaticJsonDocument<512> jsonWhitelist;
+    JsonDocument jsonWhitelist;
 
     DeserializationError err = deserializeJson(jsonWhitelist, whitelist);
     if (err) {

@@ -97,6 +97,7 @@ menu main_menu[] = {
 };
 
 menu wifi_menu[] = {
+    //{"Turn on/off", 47},
     {"Select Networks", 20},
     {"Clone & Details", 21},
     {"Acces point", 22},

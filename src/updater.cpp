@@ -188,6 +188,14 @@ void rebootEspWithReason(String reason){
 
 void updateFromGithub() {
   if (WiFi.status() == WL_CONNECTED) {
+    drawInfoBox("Updating...", "Please wait...", "", false, false);
+    if (check_for_new_firmware_version()) {
+      drawInfoBox("Update available", "Downloading update...", "", false, false);
+    } else {
+      drawInfoBox("No update available", "You are already on the latest version.", "", true, false);
+      return;
+    }
+    
     ota_update_from_url();
   } else {
     drawInfoBox("Error", "No WIFI connected", "Please connect to it first", true, false);

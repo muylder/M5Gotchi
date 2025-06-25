@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "settings.h"
 #include "mood.h"
+#include "pwnagothi.h"
 
 uint8_t state;
 uint8_t activity = 14;
@@ -33,6 +34,13 @@ void setup() {
   }
   M5.Display.setBrightness(brightness);
   wakeUp();
+  if(pwnagothiMode) {
+    pwnagothiMode = true;
+    logMessage("Pwnagothi mode enabled");
+    startPwnagothiTask();
+  } else {
+    logMessage("Pwnagothi mode disabled");
+  }
 }
 
 void wakeUp() {
