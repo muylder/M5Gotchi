@@ -15,7 +15,7 @@ extern bool pwnagothiMode;
 extern uint8_t sessionCaptures;
 
 
-#define CURRENT_VERSION "0.2.1"
+#define CURRENT_VERSION "0.3"
 #define VERSION_URL "https://raw.githubusercontent.com/youruser/yourrepo/main/version.txt"
 #define UPDATE_LINK "https://www.example.com/update"
 #define TEMP_FILE_PATH "/sdcard/version.temp"

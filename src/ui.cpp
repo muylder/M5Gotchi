@@ -1141,7 +1141,7 @@ void runApp(uint8_t appID){
       }
       }
     if(appID == 45){
-      drawInfoBox("M5Gothi","v0.3 by Devsur11  ", "www.github.com/Devsur11 ", true, false);
+      drawInfoBox("M5Gothi", "v" + String(CURRENT_VERSION) + " by Devsur11  ", "www.github.com/Devsur11 ", true, false);
     }
     if(appID == 46){
       M5.Display.fillScreen(TFT_BLACK);
