@@ -29,8 +29,12 @@ void setup() {
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
   if(initVars()){}
   else{
+    #ifndef BYPASS_SD_CHECK
+    #ifndef LITE_VERSION
     drawInfoBox("ERROR!", "SD card is needed to work.", "Insert it and restart", false, true);
+    #endif
     while(true){delay(10);}
+    #endif
   }
   M5.Display.setBrightness(brightness);
   wakeUp();

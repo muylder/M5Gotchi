@@ -4,15 +4,22 @@
 #include "HWCDC.h"
 #include "Arduino.h"
 #include "ui.h"
-#include "updater.h"
 #include <FS.h>
 #include <SD.h>
 #include <WiFi.h>
-#include "EapolSniffer.h"
 #include "settings.h"
 #include "pwnagothi.h"
+#include "EapolSniffer.h"
 #include "mood.h"
 #include "pwngrid.h"
+#include "updater.h"
+#include <Update.h>
+#include <FS.h>
+#include <SD.h>
+#include "evilPortal.h"
+#include "networkKit.h"
+#include "src.h"
+#include "logger.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -197,6 +204,8 @@ void initUi() {
 
 uint8_t returnBrightness(){return currentBrightness;}
 
+#ifndef LITE_VERSION
+
 bool toggleMenuBtnPressed() {
   delay(10);
   return (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('`')));
@@ -216,6 +225,8 @@ bool isPrevPressed() {
   return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(';'));
 }
 
+#endif
+
 void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   if(pwnagothiMode && triggerPwnagothi){
     if(WiFi.getMode() == WIFI_MODE_STA || WiFi.getMode() == WIFI_MODE_APSTA){
@@ -223,6 +234,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
     }
     pwnagothiLoop();
   }
+  #ifndef LITE_VERSION
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
@@ -238,16 +250,15 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
       menu_current_page = 1;
     }
   }
+  #endif
 
   String mood_face = getCurrentMoodFace();
   String mood_phrase = getCurrentMoodPhrase();
 
   drawTopCanvas();
   drawBottomCanvas();
-  if (userInputVar){
-    //userInput();
-  }
-  
+
+  #ifndef LITE_VERSION
   if (menuID == 1) {
     menu_current_pages = 2;
     menu_len = 6;
@@ -318,7 +329,10 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
     drawMood(mood_face, mood_phrase);
   }
   else if(appRunning){}
-
+  #endif
+  #ifdef LITE_VERSION
+    drawMood(mood_face, mood_phrase);
+  #endif 
   drawRightBar();
 
   M5.Display.startWrite();
@@ -489,6 +503,7 @@ void drawMood(String face, String phrase) {
   canvas_main.println("> " + phrase);
 }
 
+#ifndef LITE_VERSION
 
 void drawSinglePage(menu toDraw[], uint8_t menuIDPriv, uint8_t menuSize ) {
   menu_current_pages = 1;
@@ -1559,6 +1574,8 @@ void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String
   }
 }
 
+#endif
+
 inline void pushAll(){
   M5.Display.startWrite();
   canvas_top.pushSprite(0, 0);
@@ -1594,6 +1611,7 @@ void sleepFunction(){
   }
 }
 
+#ifndef LITE_VERSION
 
 void editWhitelist(){
   uint8_t writeID = sizeof(parseWhitelist()) - 1;
@@ -1644,3 +1662,5 @@ void editWhitelist(){
     }
   }
 }
+
+#endif

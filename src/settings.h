@@ -15,11 +15,13 @@ extern bool pwnagothiMode;
 extern uint8_t sessionCaptures;
 
 
-#define CURRENT_VERSION "0.2"
+#define CURRENT_VERSION "0.2.1"
 #define VERSION_URL "https://raw.githubusercontent.com/youruser/yourrepo/main/version.txt"
 #define UPDATE_LINK "https://www.example.com/update"
 #define TEMP_FILE_PATH "/sdcard/version.temp"
-#define SERIAL_LOGS
+//#define LITE_VERSION
+//#define SERIAL_LOGS
+//#define BYPASS_SD_CHECK
 //#define USE_EXPERIMENTAL_APPS
 #define SD_CS    12  // G12
 #define SD_MOSI  14  // G14
