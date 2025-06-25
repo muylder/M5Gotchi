@@ -1,6 +1,16 @@
 # M5Gothi
 
-M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface.
+<p align=left>
+  <img src="https://github.com/user-attachments/assets/a62581c5-fc90-40a5-84e6-9cf0d414deaa" width="400">
+</p>
+ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface, so you can finally go touch some grass and hack at the same time. Inspied by the original Pwnagothi project. It doesn't have AI, but at least its working like it should. This project took me alone around 1.5 years to complete so I am proud of what it turned out to be.
+
+# CREDIT
+
+https://github.com/evilsocket/pwnagotchi - For the original pwnagothi project
+https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid support for cardputer
+
+---
 
 > [!CAUTION]
 > THIS FIRMWARE CAN BE USED IN WAYS THAT MAY VIOLATE LOCAL LAWS. YOU ARE RESPONSIBLE FOR YOUR OWN ACTIONS. DO NOT USE THIS FOR MALICIOUS PURPOSES.
@@ -42,9 +52,14 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 | Device         | Status         | Notes                          |
 |----------------|----------------|--------------------------------|
 | M5Cardputer    | ✅ Supported   | Main target device             |
-| M5Stack Core2  | ⏳ Planned     | Requires UI adaptation         |
-| M5StickC       | ⏳ Planned     | Limited screen/input capability|
+| esp32s3 dev    | ✅ Lite version| See instructions below         |
+| M5Stack Core2  | ⏳ Planned     | Requires GPIO adaptation       |
+| M5StickC       | ⏳ Planned     | Requires GPIO adaptation       |
 | M5Paper        | ⏳ Planned     | E-ink rendering testing needed |
+| LILIGO t-embed | ⏳ Planned     | Requires GPIO adaptation       |
+
+>[!NOTE]
+>For devices that I planned: I do not own any of this devices, support for them will be only made with help from testers or from enough donations. Feel free to join me with testing on discord.
 
 ---
 
@@ -56,10 +71,14 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 | GitHub Update Support   | ✅ Done    |
 | SD Card Update          | ✅ Done    |
 | Web UI Update           | ✅ Done    |
+| Handshake upload to web | ⏳ Planned |
 | BLE Attacks             | ⏳ Planned |
 | BadUSB Mode             | ⏳ Planned |
 | BadBLE Emulation        | ⏳ Planned |
 | IR Remote Support       | ⏳ Planned |
+
+>[!NOTE]
+>If you want to see some of your features, submit ideas with an pull request.
 
 ---
 
@@ -87,8 +106,8 @@ You can install PlatformIO using either:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/ESPBlaster.git
-   cd ESPBlaster
+   git clone https://github.com/Devsur11/M5gotchi/
+   cd M5gothi
    ```
 
 2. Build and upload via PlatformIO:
@@ -97,15 +116,34 @@ You can install PlatformIO using either:
    pio run --target upload
    ```
 
+>[!INFO]
+>For esp32s3 dev board: use ONLY lite version binary, connect sd card with these pins or define your own in settings.h
+
+|Esp pin|Sd pin|
+|-------|------|
+|G12|CS|
+|G14|MOSI|
+|G40|CLK|
+|G39|MISO|
+
 ---
 
 ## Usage Instructions
 
+>[!IMPORTANT}
+>To use any of the functions, pwnagothi mode must be set to MANU, otherwise nothing will work!
+
 - **UI** is fully controlled via the **built-in keyboard**
+- Use  `G0` button to turn screen off, everyting will work in the background
 - Press `ESC` to open the main menu
 - Use **arrow keys** to navigate
 - Exit apps using `Fn + ESC`
 - Press `G0` button to toggle the screen on/off
+- On first boot there will be created config.conf file - use it to change setting on **lite mode** compilations
+- Customize name to your likings via setting
+- Use ENTER to confirm or `y` or `n` when asked to do so
+- use `c` to clone wifi when in wifi details menu
+- handshakes are stored in `/handshake/` folder with filemanes containing SSID of network that was attacked
 
 ---
 
@@ -113,14 +151,22 @@ You can install PlatformIO using either:
 
 | Method        | Status    | Description                                     |
 |---------------|-----------|-------------------------------------------------|
-| GitHub        | ✅ Done    | Auto update via GitHub Pages through UI        |
-| SD Card       | 🟡 In Progress | Place new firmware file and trigger update   |
-| Web UI        | ✅ Done   | Upload update through browser interface     |
+| GitHub        | ✅ Done   | Update via GitHub Pages through UI (not tested) |
+| SD Card       | ✅ Done   | Place update.bin file and trigger update        |
+| Web UI        | ✅ Done   | Upload update through browser interface         |
 
 ---
 
-## Examples
-[] Fill this section before relase!
+## Example screenshots of menus
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ba45d464-f09b-4d81-b8b9-d0ca3074e64e" width="300">
+  <img src="https://github.com/user-attachments/assets/1d4dfe88-0109-47bb-a71e-f5fe25f6150f" width="300">
+  <img src="https://github.com/user-attachments/assets/52b26e04-b6e9-41c0-bf25-89069a821e64" width="300">
+
+</p>
+
+
 
 ---
 
@@ -142,8 +188,3 @@ To help out, fork this repo and open a PR.
 Join our Discord community for support, discussion, and sneak peeks at upcoming features.
 
 ---
-
-# TODO
-- add pwnagothi auto mode - done!!!!!!!!!!!!!!!
-- add update from github - done but needs http address that will be created after relase
-- relase to public
