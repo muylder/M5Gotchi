@@ -2,10 +2,11 @@
 #include "ArduinoJson.h"
 #include "SD.h"
 #include "logger.h"
+#include "pwnagothi.h"
 
 String hostname = "M5";
 bool sound = true;
-int brightness = 255;
+int brightness = 150; // Default brightness value, can be changed in settings
 uint16_t pwned_ap;
 SPIClass sdSPI;
 String savedApSSID;

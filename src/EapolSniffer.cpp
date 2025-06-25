@@ -101,15 +101,15 @@ bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging pur
       logMessage("SD card init failed");
       return false;
     }
-    // File testFile = SD.open("/test_write.txt", FILE_WRITE);
-    // if (testFile) {
-    //   testFile.println("Test OK");
-    //   testFile.close();
-    //   logMessage("Test file written.");
-    // } else {
-    //   logMessage("Failed to write test file.");
-    //   return false;
-    // }
+    File testFile = SD.open("/test_write.txt", FILE_WRITE);
+    if (testFile) {
+      testFile.println("Test OK");
+      testFile.close();
+      logMessage("Test file written.");
+    } else {
+      logMessage("Failed to write test file.");
+      return false;
+    }
   } else {
     logMessage("Skipping SD card check for debugging purposes.");
   }
@@ -149,7 +149,7 @@ void SnifferLoop() {
       strncpy(apName, getSSIDFromMac(packet->data + 10).c_str(), sizeof(apName) - 1);
       apName[sizeof(apName) - 1] = '\0';
       char filename[64];
-      snprintf(filename, sizeof(filename), "/handshake/handshake_%s_ID:%i.pcap", apName, random(999));
+      snprintf(filename, sizeof(filename), "/handshake/handshake_%s_ID_%i.pcap", apName, random(999));
 
       if (!SD.exists("/handshake")) {
         SD.mkdir("/handshake");

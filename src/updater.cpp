@@ -106,16 +106,11 @@ void updateFromSd(){
      return;
      //rebootEspWithReason("Card Mount Failed");
   }
-  cardType = SD.cardType();
-  if (cardType == CARD_NONE) {
-     rebootEspWithReason("No SD_MMC card attached");
-  }
-  else{
-    if(drawQuestionBox("Are you sure?", "Are want to update?", "This can not be undone!")){
-      updateFromFS(SD);
-      }
-    else{return;}
-  }
+
+  if(drawQuestionBox("Are you sure?", "Are want to update?", "This can not be undone!")){
+    updateFromFS(SD);
+    }
+  else{return;}
 }
 void performUpdate(Stream &updateSource, size_t updateSize) {
    if (Update.begin(updateSize)) {      
@@ -131,8 +126,9 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
          if (Update.isFinished()) {
             logMessage("Update successfully completed. Rebooting.");
             
-            drawInfoBox("Info", "Update succesful, ","please reset device", false, false);
-            while(true){}
+            drawInfoBox("Info", "Update succesful, ","restarting...", false, false);
+            delay(2000);
+            rebootEspWithReason("Update finished, rebooting now");
 
          }
          else {

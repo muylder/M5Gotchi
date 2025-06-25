@@ -1,3 +1,4 @@
+#include "settings.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 #include "githubUpdater.h"
@@ -10,7 +11,7 @@ void ota_update_from_url() {
 
   //drawInfoBox("Updating...", "Updating from github...", "This may take a while...", false,false);
   esp_http_client_config_t config = {
-    .url = "https://devsur11.github.io/Githubpagesespupdatetest/firmware.bin",
+    .url = UPDATE_LINK,
     .cert_pem = github_root_cert_pem_start,
   };
 

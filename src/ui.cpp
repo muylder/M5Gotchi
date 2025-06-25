@@ -171,7 +171,7 @@ void initUi() {
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(TFT_WHITE);
   M5.Display.setTextColor(BLACK);
-  M5.Display.setColor(BLACK);
+  //M5.Display.setColor(WHITE);
 
   display_w = M5.Display.width();
   display_h = M5.Display.height();
@@ -214,9 +214,9 @@ bool isPrevPressed() {
 }
 
 void updateUi(bool show_toolbars, bool triggerPwnagothi) {
-  if(pwnagothiMode && triggerPwnagothi){
-    pwnagothiLoop();
-  }
+  // if(pwnagothiMode && triggerPwnagothi){
+  //   pwnagothiLoop();
+  // }
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
@@ -532,6 +532,8 @@ void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool 
     drawTopCanvas();
     drawBottomCanvas();
     if(canBeQuit){delay(100);}
+    canvas_main.fillScreen(TFT_WHITE);
+    canvas_main.setTextColor(BLACK);
     canvas_main.clear(TFT_WHITE);
     canvas_main.setTextSize(3);
     if(isCritical){canvas_main.setColor(RED);}
@@ -617,6 +619,7 @@ void runApp(uint8_t appID){
       intWifiChoice = wifisel;
       logMessage("Selected wifi: "+ wifiChoice);
       drawInfoBox("Succes", wifiChoice, "Was selected", true, false);
+      updateActivity(true);
     }
     if(appID == 21){
       if(wifiChoice.equals("")){
@@ -625,6 +628,7 @@ void runApp(uint8_t appID){
       else{
         drawWifiInfoScreen(WiFi.SSID(intWifiChoice), WiFi.BSSIDstr(intWifiChoice), String(WiFi.RSSI(intWifiChoice)), String(WiFi.channel(intWifiChoice)));
       }
+      updateActivity(true);
     }
     if(appID == 22){
       String appList[] = {"Phishing form", "Beacon spam", "AP mode", "Turn OFF"};
@@ -737,6 +741,7 @@ void runApp(uint8_t appID){
       menu_current_opt = 0;
       menu_current_page = 1;
       menuID = 0;
+      updateActivity(true);
     }
     if(appID == 23){
       bool answwear = drawQuestionBox("WARNING!", "This is illegal to use not", "on your network! Continue?");
@@ -795,12 +800,13 @@ void runApp(uint8_t appID){
           drawInfoBox("Error!", "No wifi selected!", "Select one first!", true, false);
         }
       }
+      updateActivity(true);
     }
     if(appID == 24){
-      String mmenu[] = {"Mac sniffing", "EAPOL sniffing", "Chanels graph", "Beacon sniff", "Client sniff"};
+      String mmenu[] = {"Mac sniffing", "EAPOL sniffing"};
       singlePage = false;
       menu_current_pages = 2;
-      uint8_t answerrr = drawMultiChoice("Sniffing", mmenu, 5, 1, 0);
+      uint8_t answerrr = drawMultiChoice("Sniffing", mmenu, 2, 1, 0);
       if(answerrr == 0){
         String mmenuu[] = {"Auto switch" ,"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
         answerrr = drawMultiChoice("Select chanel", mmenuu, 13, 1, 0);
@@ -933,6 +939,7 @@ void runApp(uint8_t appID){
           return;
         }
       }
+      updateActivity(true);
     }
     if(appID == 25){}
     if(appID == 26){}
@@ -946,19 +953,16 @@ void runApp(uint8_t appID){
     if(appID == 34){}
     if(appID == 35){}
     if(appID == 36){
+      drawInfoBox("Pwnagothi mode", "Auto mode enabled", "Press ENTER to begin", true, false);
+      pwnagothiMode = true;
       if(!pwnagothiMode)
-      {bool answear = drawQuestionBox("CONFIRMATION", "Operate in controlled enviroment", "and only if you have premision!");
+      {bool answear = drawQuestionBox("CONFIRMATION", "Operate only if you ", "have premision!");
       if(answear){
         drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
-        bool answear2 = pwnagothiBegin();
-        if(answear2){
-          drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
-          pwnagothiMode = true;
-          return;
-        }
-        else{
-          drawInfoBox("ERROR", "Can't init pwnagothi", "auto mode. Contact dev", true, true);
-        }
+        startPwnagothiTask();
+        drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
+        pwnagothiMode = true;
+        return;
       }}
       else{
         drawInfoBox("WTF?!", "Pwnagothi mode is on", "Can't you just look at UI!??", true, true);
@@ -966,12 +970,34 @@ void runApp(uint8_t appID){
       return;
     }
     if(appID == 37){
+      stopPwnagothiTask();
       pwnagothiMode = false;
       WiFi.mode(WIFI_MODE_NULL);
       drawInfoBox("INFO", "Auto mode turned off", "Enabled manual mode", true, false);
     }
     if(appID == 38){editWhitelist();}
-    if(appID == 39){}
+    if(appID == 39){
+      File root = SD.open("/handshakes");
+      if (!root || !root.isDirectory()) {
+        drawInfoBox("Error", "Cannot open /handshakes", "Check SD card!", true, true);
+        return;
+      }
+      String fileList[50];
+      uint8_t fileCount = 0;
+      File file = root.openNextFile();
+      while (file && fileCount < 50) {
+        if (!file.isDirectory()) {
+          fileList[fileCount++] = String(file.name());
+        }
+        file = root.openNextFile();
+      }
+      if (fileCount == 0) {
+        drawInfoBox("Info", "No handshakes found", "", true, false);
+        return;
+      }
+      drawMultiChoice("Handshakes:", fileList, fileCount, 5, 3);
+      updateActivity(true);
+    }
     if(appID == 40){
         String name = userInput("New value", "Change Hostname to:", 5);
         if(name != ""){
@@ -1092,7 +1118,7 @@ void runApp(uint8_t appID){
       }
       }
     if(appID == 45){
-      drawInfoBox("ESPBlaster","v0.2 by Devsur11  ", "www.github.com/Devsur11 ", true, false);
+      drawInfoBox("M5Gothi","v0.3 by Devsur11  ", "www.github.com/Devsur11 ", true, false);
     }
     if(appID == 46){
       M5.Display.fillScreen(TFT_BLACK);

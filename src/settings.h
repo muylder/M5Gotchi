@@ -23,6 +23,8 @@ extern uint8_t sessionCaptures;
 #define MAX_PKT_SIZE 3000
 #define ROW_SIZE 40
 #define PADDING 10
+#define UPDATE_LINK "https://www.example.com/update"
+#define pwnagothiModeEnabled pwnagothiMode
 
 bool initVars();
 bool saveSettings();

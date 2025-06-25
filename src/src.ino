@@ -28,7 +28,7 @@ void setup() {
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
   if(initVars()){}
   else{
-    drawInfoBox("ERROR!", "SD card is needed to work.", "Please insert it and restart", false, true);
+    drawInfoBox("ERROR!", "SD card is needed to work.", "Insert it and restart", false, true);
     while(true){delay(10);}
   }
   M5.Display.setBrightness(brightness);
@@ -50,15 +50,18 @@ void loop() {
   M5Cardputer.update();
   sleepFunction();
   updateUi(true);
-  if (currentMillis >= interval) {
-    interval = interval + 120000;  // Zaktualizowanie czasu ostatniego wykonania funkcji
-    updateActivity();  // Wykonanie funkcji co 2 minuty
+  if(!pwnagothiMode)  {
+    if (currentMillis >= interval) {
+      interval = interval + 120000;  // Zaktualizowanie czasu ostatniego wykonania funkcji
+      updateActivity(false);  // Wykonanie funkcji co 2 minuty
+      setMood(activity);
+      logMessage("Mood changed");
+    }
     setMood(activity);
-    logMessage("Mood changed");
   }
 }
 
-void updateActivity(bool reward) {
+void updateActivity(bool reward = false) {
   if(reward){
     if(activity == 2 || activity == 26){
       activity = 10;
@@ -71,7 +74,7 @@ void updateActivity(bool reward) {
     if(activity==0){  
     }
     else{
-      activity = activity - 1;
+      activity--;
     }
   } 
 }

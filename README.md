@@ -52,14 +52,14 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 
 | Feature                 | Status     |
 |-------------------------|------------|
-| Pwnagothi Auto Mode     | ✅ Done     |
-| GitHub Update Support   | ✅ Done     |
-| SD Card Update          | 🟡 In Progress |
-| Web UI Update           | ✅ Done     |
-| BLE Attacks             | ⏳ Planned  |
-| BadUSB Mode             | ⏳ Planned  |
-| BadBLE Emulation        | ⏳ Planned  |
-| IR Remote Support       | ⏳ Planned  |
+| Pwnagothi Auto Mode     | ✅ Done    |
+| GitHub Update Support   | ✅ Done    |
+| SD Card Update          | ✅ Done    |
+| Web UI Update           | ✅ Done    |
+| BLE Attacks             | ⏳ Planned |
+| BadUSB Mode             | ⏳ Planned |
+| BadBLE Emulation        | ⏳ Planned |
+| IR Remote Support       | ⏳ Planned |
 
 ---
 
@@ -144,6 +144,6 @@ Join our Discord community for support, discussion, and sneak peeks at upcoming 
 ---
 
 # TODO
-- add pwnagothi auto mode
+- add pwnagothi auto mode - done!!!!!!!!!!!!!!!
 - add update from github - done but needs http address that will be created after relase
 - relase to public

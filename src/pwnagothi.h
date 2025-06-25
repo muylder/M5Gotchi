@@ -9,3 +9,6 @@ void pwnagothiLoop();
 bool pwnagothiBegin();
 void delayWithUI(uint16_t delayTime);
 void removeItemFromWhitelist(String valueToRemove);
+void pwnagothiTask(void *pvParameters);
+void startPwnagothiTask();
+void stopPwnagothiTask();
