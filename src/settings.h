@@ -10,6 +10,9 @@ extern uint16_t pwned_ap;
 extern SPIClass sdSPI;
 extern String savedApSSID;
 extern String savedAPPass;
+extern String whitelist;
+extern bool pwnagothiMode;
+extern uint8_t sessionCaptures;
 
 #define SERIAL_LOGS
 //#define USE_EXPERIMENTAL_APPS

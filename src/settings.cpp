@@ -10,16 +10,18 @@ uint16_t pwned_ap;
 SPIClass sdSPI;
 String savedApSSID;
 String savedAPPass;
+String whitelist;
 File FConf;
+bool pwnagothiMode;
+uint8_t sessionCaptures;
 
 bool initVars(){
-    SD.begin(SD_CS, sdSPI, 1000000);
-    logMessage("SD Card init!");
     if(!SD.begin(SD_CS, sdSPI, 1000000)){
         logMessage("JSON parser failed, sd card init failed");
         return false;
     }
     else{
+        logMessage("SD Card init!");
         if(SD.open("/config.conf", "r", false)){
             logMessage("Conf file found, loading data");
 
@@ -52,7 +54,8 @@ bool initVars(){
             pwned_ap = doc["pwned_ap"];
             savedApSSID = String(doc["savedApSSID"].as<const char*>());
             savedAPPass = String(doc["savedAPPass"].as<const char*>());
-
+            whitelist = String(doc["whitelist"].as<const char*>());
+            pwnagothiMode = doc["auto_mode_on_startup"];
         }
         else{
             logMessage("Conf file not found, creating one");
@@ -63,7 +66,9 @@ bool initVars(){
             config["pwned_ap"] = pwned_ap;
             config["savedApSSID"] = savedApSSID;
             config["savedAPPass"] = savedAPPass;
-            
+            config["whitelist"] = whitelist;
+            config["auto_mode_on_startup"] = pwnagothiMode;
+
             logMessage("JSON data creation successful, proceeding to save");
 
             FConf = SD.open("/config.conf", FILE_WRITE, true);
@@ -89,9 +94,11 @@ bool saveSettings(){
     config["pwned_ap"] = pwned_ap;
     config["savedApSSID"] = savedApSSID;
     config["savedAPPass"] = savedAPPass;
+    config["whitelist"] = whitelist;
+    config["auto_mode_on_startup"] = pwnagothiMode;
     
     logMessage("JSON data creation successful, proceeding to save");
-    FConf = SD.open("/config.conf", FILE_WRITE, true);
+    FConf = SD.open("/config.conf", FILE_WRITE, false);
     if (FConf) {
         String output;
         serializeJsonPretty(config, output);

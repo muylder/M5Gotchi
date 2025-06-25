@@ -105,9 +105,9 @@ bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging pur
     // if (testFile) {
     //   testFile.println("Test OK");
     //   testFile.close();
-    //   Serial.println("Test file written.");
+    //   logMessage("Test file written.");
     // } else {
-    //   Serial.println("Failed to write test file.");
+    //   logMessage("Failed to write test file.");
     //   return false;
     // }
   } else {
@@ -155,7 +155,7 @@ void SnifferLoop() {
         SD.mkdir("/handshake");
       }
 
-      file = SD.open(filename, FILE_WRITE);
+      file = SD.open(filename, FILE_WRITE, true);
       if (!file) {
         logMessage("[ERROR] fopen failed: " + String(filename));
         free(packet->data);

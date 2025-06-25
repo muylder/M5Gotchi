@@ -10,6 +10,8 @@
 #include <WiFi.h>
 #include "EapolSniffer.h"
 #include "settings.h"
+#include "pwnagothi.h"
+#include "mood.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -162,7 +164,6 @@ bool apMode;
 String loginCaptured = "";
 String passCaptured = "";
 bool cloned;
-String pwnagothiMode = "MANUAL";
 
 void initUi() {
   M5.Display.setRotation(1);
@@ -212,7 +213,10 @@ bool isPrevPressed() {
   return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(';'));
 }
 
-void updateUi(bool show_toolbars) {
+void updateUi(bool show_toolbars, bool triggerPwnagothi) {
+  if(pwnagothiMode && triggerPwnagothi){
+    pwnagothiLoop();
+  }
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
@@ -249,17 +253,41 @@ void updateUi(bool show_toolbars) {
     drawMenu();
   } 
   else if (menuID == 2){
-    drawSinglePage( wifi_menu , 2, 5);
-    drawMenu();
+    if(!pwnagothiMode)
+    {
+      drawSinglePage( wifi_menu , 2, 5);
+      drawMenu();
+    }
+    else{
+      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
+      delay(5000);
+      menuID = 0;
+    }
   }
   #ifdef USE_EXPERIMENTAL_APPS
   else if (menuID == 3){
-    drawMultiplePages( bluetooth_menu , 3, 6);
-    drawMenu();
+    if(!pwnagothiMode)
+    {
+      drawMultiplePages( bluetooth_menu , 3, 6);
+      drawMenu();
+    }
+    else{
+      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
+      delay(5000);
+      menuID = 0;
+    }
   }
   else if (menuID == 4){
-    drawMultiplePages( IR_menu , 4, 5);
-    drawMenu();
+    if(!pwnagothiMode)
+    {
+      drawMultiplePages( IR_menu , 4, 5);
+      drawMenu();
+    }
+    else{
+      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
+      delay(5000);
+      menuID = 0;
+    }
   }
   #endif
   else if (menuID == 5){
@@ -268,8 +296,16 @@ void updateUi(bool show_toolbars) {
     
   }
   else if (menuID == 6){
-    drawMultiplePages( settings_menu , 6, 7);
-    drawMenu();
+    if(!pwnagothiMode)
+    {
+      drawMultiplePages( settings_menu , 6, 7);
+      drawMenu();
+    }
+    else{
+      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
+      delay(5000);
+      menuID = 0;
+    }
   }  
   else if (menuID == 0)
   {
@@ -402,9 +438,9 @@ void drawBottomCanvas() {
   canvas_bot.setTextColor(BLACK);
   canvas_bot.setColor(BLACK);
   canvas_bot.setTextDatum(top_left);
-  uint16_t captures; //update later
+  uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
-  canvas_bot.drawString("PWND: " + String(captures)+String(allTimeCaptures), 3, 5);
+  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures), 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";
@@ -426,7 +462,7 @@ void drawBottomCanvas() {
     wifiStatus = "disconnected";
   }
   canvas_bot.setTextDatum(top_right);
-  canvas_bot.drawString(pwnagothiMode + " " + wifiStatus, display_w, 5);
+  canvas_bot.drawString(String((pwnagothiMode) ? "AUTO" : "MANU") + " " + wifiStatus, display_w, 5);
   canvas_bot.drawLine(0, 0, display_w, 0);
 }
 
@@ -443,7 +479,7 @@ void drawMood(String face, String phrase) {
   //canvas_main.setTextStyle(BOLD);
   canvas_main.drawString(face, 5 , 30);
   canvas_main.setTextSize(1.5);
-  canvas_main.setCursor(3, canvas_h - 30);
+  canvas_main.setCursor(3, canvas_h - 40);
   canvas_main.println("> " + phrase);
 }
 
@@ -710,7 +746,7 @@ void runApp(uint8_t appID){
           setMac(WiFi.BSSID(intWifiChoice));
           logMessage("User inited deauth");
           initClientSniffing();
-          String clients[10];
+          String clients[50];
           int clientLen;
           while(true){
             get_clients_list(clients, clientLen);
@@ -719,7 +755,7 @@ void runApp(uint8_t appID){
             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
             sleepFunction();
             if(status.enter){
-              delay(500);
+              delay(150);
               esp_wifi_set_promiscuous(false);
               break;
             }
@@ -729,8 +765,6 @@ void runApp(uint8_t appID){
             return;
           }
           logMessage("Selected target: " + clients[target]);
-          
-          delay(100);
           int previousMillis;
           uint16_t interval = 1000;
           int PPS;
@@ -746,15 +780,11 @@ void runApp(uint8_t appID){
             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
             sleepFunction();
             if(status.enter){
-              delay(500);
               break;
             }
 
             if(send_deauth_packets(clients[target], 1)){
               PPS++;
-            }
-            else{
-              delay(5);
             }
             
           }
@@ -915,21 +945,44 @@ void runApp(uint8_t appID){
     if(appID == 33){}
     if(appID == 34){}
     if(appID == 35){}
-    if(appID == 36){}
-    if(appID == 37){}
-    if(appID == 38){}
-    if(appID == 39){}
-    if(appID == 40){
-      String name = userInput("New value", "Change Hostname to:", 5);
-      if(name != ""){
-        hostname = name;
-        if(saveSettings()){
+    if(appID == 36){
+      if(!pwnagothiMode)
+      {bool answear = drawQuestionBox("CONFIRMATION", "Operate in controlled enviroment", "and only if you have premision!");
+      if(answear){
+        drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
+        bool answear2 = pwnagothiBegin();
+        if(answear2){
+          drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
+          pwnagothiMode = true;
           return;
         }
-        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
-        return;
+        else{
+          drawInfoBox("ERROR", "Can't init pwnagothi", "auto mode. Contact dev", true, true);
+        }
+      }}
+      else{
+        drawInfoBox("WTF?!", "Pwnagothi mode is on", "Can't you just look at UI!??", true, true);
       }
-      drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
+      return;
+    }
+    if(appID == 37){
+      pwnagothiMode = false;
+      WiFi.mode(WIFI_MODE_NULL);
+      drawInfoBox("INFO", "Auto mode turned off", "Enabled manual mode", true, false);
+    }
+    if(appID == 38){editWhitelist();}
+    if(appID == 39){}
+    if(appID == 40){
+        String name = userInput("New value", "Change Hostname to:", 5);
+        if(name != ""){
+          hostname = name;
+          if(saveSettings()){
+            return;
+          }
+          else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+          return;
+        }
+        drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
     }
     if(appID == 41){
       String value = userInput("Brightness", "Change Brightness to (max 255):", 3);
@@ -961,8 +1014,7 @@ void runApp(uint8_t appID){
         }
         else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
       }
-      else
-      drawInfoBox("Error", "Invalid Value", String(name) , true, false);
+      else{drawInfoBox("Error", "Invalid Value", String(name) , true, false);}
     }
     if(appID == 42){
       String selection[] = {"Off", "On"};
@@ -984,11 +1036,12 @@ void runApp(uint8_t appID){
           counter++;
         }
         counter = 0;
+        }
         if(WiFi.isConnected()){
           drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
           return;
         }
-      }
+      
       int numNetworks = WiFi.scanNetworks();
       String wifinets[20];
       if (numNetworks == 0) {
@@ -1186,7 +1239,7 @@ String multiplyChar(char toMultiply, uint8_t literations){
 
 bool drawQuestionBox(String tittle, String info, String info2, String label) {
   appRunning = true;
-  delay(150);
+  delay(100);
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
@@ -1319,9 +1372,10 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
 String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryLen){
   uint8_t writeID = 0;
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
-  String* listToReturn = new String[30];
+  String* listToReturn;
+  if(maxEntryLen > 12){maxEntryLen = 12;}
+  delay(100);
   while(true){
-    delay(100);
     sleepFunction();
     uint8_t choice = drawMultiChoice(windowName, list, 4 , 0, 0);
     if (choice==0){
@@ -1341,8 +1395,11 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
     }
     
     else if (choice==1){
-      String tempText = userInput("Position?:", "(number)", 2);
-      listToReturn[tempText.toInt() - 1] = "";
+      uint16_t idOfItemToRemove = drawMultiChoice("Remove element", listToReturn, writeID, 0, 0);
+      listToReturn[idOfItemToRemove] = "";
+      for(uint8_t i = idOfItemToRemove; i < writeID - 1; i++){
+        listToReturn[i] = listToReturn[i+1];
+      }
     }
     else if (choice==3){
       delay(100);
@@ -1357,6 +1414,7 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
           if(i=='`'){
             //*String toreturn[] = {"SYS:NONE"};
             //return toreturn;
+            // | needs implementation
           }
         }
         M5.update();
@@ -1462,6 +1520,57 @@ void sleepFunction(){
       M5.Lcd.setBrightness(brightness);
       initUi();
       sleep_mode = false;
+    }
+  }
+}
+
+
+void editWhitelist(){
+  uint8_t writeID = sizeof(parseWhitelist()) - 1;
+  String list[] = {"Add element", "Remove element" , "Done", "Preview"};
+  delay(100);
+  while(true){
+    String* listToReturn = parseWhitelist();
+    sleepFunction();
+    uint8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
+    if (choice==0){
+      String tempText = userInput("Add value:", "", 12);
+      addToWhitelist(tempText);
+      writeID++;
+    }
+    else if (choice==2){
+      delay(100);
+      return;
+    }
+    else if (choice==1){
+      uint16_t idOfItemToRemove = drawMultiChoice("Remove element", listToReturn, writeID, 0, 0);
+      if(idOfItemToRemove == 100){
+        return;
+      }
+      removeItemFromWhitelist(listToReturn[idOfItemToRemove]);
+      writeID--;
+    }
+    else if (choice==3){
+      delay(100);
+      while(true){
+        drawTopCanvas();
+        drawBottomCanvas();
+        sleepFunction();
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+        keyboard_changed = M5Cardputer.Keyboard.isChange();
+        if(keyboard_changed){Sound(10000, 100, sound);}  
+        for(auto i : status.word){
+          if(i=='`'){
+            return;
+          }
+        }
+        M5.update();
+        M5Cardputer.update();
+        if(isOkPressed()){break;}
+        drawList(listToReturn, writeID);
+        pushAll();
+        drawMenu();
+      }
     }
   }
 }

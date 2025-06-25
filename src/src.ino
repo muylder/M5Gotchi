@@ -2,6 +2,7 @@
 #include "M5Unified.h"
 #include "ui.h"
 #include "settings.h"
+#include "mood.h"
 
 uint8_t state;
 uint8_t activity = 14;

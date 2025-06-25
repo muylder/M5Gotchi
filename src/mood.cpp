@@ -42,37 +42,6 @@ splash mainFaces[] = {
   {"(X__X)", "It works on my end. On your it don't need to :)"},
 };
 
-pwnagothiMood pwnagothiFaces[] = {
-  { "(v__v)", "i think ", " doesn't need internet right now" },
-  { "(=__=)", "maybe ", " is just... not worth it" },
-  { "(-__-)", "meh. i'll poke ", " after a nap" },
-  { "(T_T )", "why does ", " ignore me..." },
-  { "(;__;)", "i just wanted ", " to notice me" },
-  { "(>__<)", "", " made me sad. again" },
-  { "(.__.)", "", " left me on read..." },
-  { "(+__+)", "computing how to deal with ", "" },
-  { "(@__@)", "", " has way too many zeros and ones" },
-  { "(@__@)", "mood.cpp crashed near ", "" },
-  { "(@__@)", "ok ", "... i see you working now? huh?" },
-  { "(#__#)", "i swear i didn't break ", "" },
-  { "(O_O )", "", "... you're hiding something, huh?" },
-  { "(0_0 )", "hey ", ", no need to be shy" },
-  { "(o__o)", "", " doesn't know i'm here... good" },
-  { "(o__o)", "just lurking under ", "" },
-  { "( O_O)", "yo ", ", let's hang out!" },
-  { "( 0_0)", "", " looks like it has secrets" },
-  { "(a__a)", "so many networks, starting with ", "" },
-  { "(^__^)", "i love pwning ", ", don't you?" },
-  { "(*__*)", "this is gonna be epic—watch this ", "!" },
-  { "(0__0)", "give me more data from ", "!" },
-  { "(-@_@)", "so many networks, starting with ", "!" },
-  { "(O__O)", "scanning ", "... i'm so ready" },
-  { "(O__O)", "smile ", ", it's snapshot day!" },
-  { "(O__O)", "rise and shine ", ", i'm back!" },
-  { "(X__X)", "works on my end. sorry ", " :)" }
-};
-
-
 uint8_t current_mood = 0;
 String current_phrase = "";
 String part2 = "";
