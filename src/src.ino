@@ -37,7 +37,7 @@ void setup() {
   if(pwnagothiMode) {
     pwnagothiMode = true;
     logMessage("Pwnagothi mode enabled");
-    startPwnagothiTask();
+    pwnagothiBegin();
   } else {
     logMessage("Pwnagothi mode disabled");
   }

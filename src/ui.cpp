@@ -12,6 +12,7 @@
 #include "settings.h"
 #include "pwnagothi.h"
 #include "mood.h"
+#include "pwngrid.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -215,9 +216,12 @@ bool isPrevPressed() {
 }
 
 void updateUi(bool show_toolbars, bool triggerPwnagothi) {
-  // if(pwnagothiMode && triggerPwnagothi){
-  //   pwnagothiLoop();
-  // }
+  if(pwnagothiMode && triggerPwnagothi){
+    if(WiFi.getMode() == WIFI_MODE_STA || WiFi.getMode() == WIFI_MODE_APSTA){
+      pwngridAdvertise();
+    }
+    pwnagothiLoop();
+  }
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
@@ -954,31 +958,33 @@ void runApp(uint8_t appID){
     if(appID == 34){}
     if(appID == 35){}
     if(appID == 36){
-      drawInfoBox("Pwnagothi mode", "Auto mode enabled", "Press ENTER to begin", true, false);
-      pwnagothiMode = true;
-      if(!pwnagothiMode)
-      {bool answear = drawQuestionBox("CONFIRMATION", "Operate only if you ", "have premision!");
-      if(answear){
-        drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
-        startPwnagothiTask();
-        drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
-        pwnagothiMode = true;
-        return;
-      }}
+      if(!pwnagothiMode){
+        bool answear = drawQuestionBox("CONFIRMATION", "Operate only if you ", "have premision!");
+        if(answear){
+          drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
+          pwnagothiBegin();
+          drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
+          pwnagothiMode = true;
+          return;
+        }
+      }
       else{
         drawInfoBox("WTF?!", "Pwnagothi mode is on", "Can't you just look at UI!??", true, true);
       }
       return;
     }
     if(appID == 37){
-      stopPwnagothiTask();
       pwnagothiMode = false;
       WiFi.mode(WIFI_MODE_NULL);
       drawInfoBox("INFO", "Auto mode turned off", "Enabled manual mode", true, false);
     }
     if(appID == 38){editWhitelist();}
     if(appID == 39){
-      File root = SD.open("/handshakes");
+      if(!SD.begin(SD_CS, sdSPI, 1000000)) {
+        drawInfoBox("Error", "Cannot open SD card", "Check SD card!", true, true);
+        return;
+      }
+      File root = SD.open("/handshake");
       if (!root || !root.isDirectory()) {
         drawInfoBox("Error", "Cannot open /handshakes", "Check SD card!", true, true);
         return;

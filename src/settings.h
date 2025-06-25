@@ -20,7 +20,7 @@ extern uint8_t sessionCaptures;
 #define UPDATE_LINK "https://www.example.com/update"
 #define TEMP_FILE_PATH "/sdcard/version.temp"
 #define SERIAL_LOGS
-#define USE_EXPERIMENTAL_APPS
+//#define USE_EXPERIMENTAL_APPS
 #define SD_CS    12  // G12
 #define SD_MOSI  14  // G14
 #define SD_SCK   40  // G40
