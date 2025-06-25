@@ -97,7 +97,7 @@ menu main_menu[] = {
 };
 
 menu wifi_menu[] = {
-    //{"Turn on/off", 47},
+    {"Turn on/off", 47},
     {"Select Networks", 20},
     {"Clone & Details", 21},
     {"Acces point", 22},
@@ -256,7 +256,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   else if (menuID == 2){
     if(!pwnagothiMode)
     {
-      drawSinglePage( wifi_menu , 2, 5);
+      drawMultiplePages( wifi_menu , 2, 6);
       drawMenu();
     }
     else{
@@ -578,7 +578,7 @@ void runApp(uint8_t appID){
   menu_current_page = 1;
   menuID = 0; 
   if(appID){
-    if(appID == 1){drawSinglePage(wifi_menu, 2, 5);}
+    if(appID == 1){drawMultiplePages( wifi_menu , 2, 6);}
     #ifdef USE_EXPERIMENTAL_APPS
     if(appID == 2){drawMultiplePages(bluetooth_menu, 3, 6);}
     if(appID == 3){drawSinglePage(IR_menu, 4, 5 );}
@@ -1125,7 +1125,19 @@ void runApp(uint8_t appID){
       M5.Display.fillScreen(TFT_BLACK);
       esp_deep_sleep_start(); 
       }
-    if(appID == 47){}
+    if(appID == 47){
+      String options[] = {"Turn ON", "Turn OFF", "Back"};
+      int choice = drawMultiChoice("WiFi Power", options, 3, 2, 0);
+      if (choice == 0) {
+        WiFi.mode(WIFI_STA);
+        drawInfoBox("WiFi", "WiFi turned ON", "", true, false);
+      } else if (choice == 1) {
+        WiFi.mode(WIFI_MODE_NULL);
+        drawInfoBox("WiFi", "WiFi turned OFF", "", true, false);
+      } else {
+        return;
+      }
+    }
   }
   return;
 }
