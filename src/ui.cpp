@@ -132,6 +132,7 @@ menu pwngotchi_menu[] = {
 };
 
 menu settings_menu[] = {
+    {"Pwnagothi on boot", 48},
     {"Change Hostname", 40},
     {"Display brightness", 41},
     {"Sound", 42},
@@ -303,7 +304,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   else if (menuID == 6){
     if(!pwnagothiMode)
     {
-      drawMultiplePages( settings_menu , 6, 7);
+      drawMultiplePages( settings_menu , 6, 8);
       drawMenu();
     }
     else{
@@ -589,7 +590,7 @@ void runApp(uint8_t appID){
     #endif
     if(appID == 4){drawSinglePage(pwngotchi_menu, 5 , 3 );}
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
-    if(appID == 6){drawMultiplePages( settings_menu , 6, 7);}
+    if(appID == 6){drawMultiplePages( settings_menu , 6, 8);}
     if(appID == 7){}
     if(appID == 8){}
     if(appID == 9){}
@@ -1140,6 +1141,30 @@ void runApp(uint8_t appID){
       } else if (choice == 1) {
         WiFi.mode(WIFI_MODE_NULL);
         drawInfoBox("WiFi", "WiFi turned OFF", "", true, false);
+      } else {
+        return;
+      }
+    }
+    if(appID == 48){
+      String options[] = {"Enable", "Disable", "Back"};
+      int choice = drawMultiChoice("Pwnagothi on boot", options, 3, 6, 0);
+      if (choice == 0) {
+        pwnagothiMode = true;
+        if (saveSettings()) {
+          drawInfoBox("Success", "Pwnagothi will run", "on boot", true, false);
+          pwnagothiMode = false;
+          return;
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else if (choice == 1) {
+        pwnagothiMode = false;
+        if (saveSettings()) {
+          drawInfoBox("Success", "Pwnagothi will NOT run", "on boot", true, false);
+          return;
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
       } else {
         return;
       }
