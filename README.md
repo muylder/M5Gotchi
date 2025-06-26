@@ -1,14 +1,8 @@
+![canva](https://github.com/user-attachments/assets/81a5573a-39da-4f24-bf98-888c6a2f6748)
+
 # M5Gothi
 
-<p align=left>
-  <img src="https://github.com/user-attachments/assets/a62581c5-fc90-40a5-84e6-9cf0d414deaa" width="400">
-</p>
- M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface, so you can finally go touch some grass and hack at the same time. Inspied by the original Pwnagothi project. It doesn't have AI, but at least its working like it should. This project took me alone around 1.5 years to complete so I am proud of what it turned out to be.
-
-# CREDIT
-
-https://github.com/evilsocket/pwnagotchi - For the original pwnagothi project
-https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid support for cardputer
+M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface, so you can finally go touch some grass and hack at the same time. Inspied by the original Pwnagothi project. It doesn't have AI, but at least its working like it should. This project took me alone around 1.5 years to complete so I am proud of what it turned out to be.
 
 ---
 
@@ -18,6 +12,14 @@ https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid suppo
 > This tool is intended **only for legal research and educational purposes**.
 > Use of this firmware on unauthorized networks, or against devices without explicit permission, is **strictly prohibited** and **illegal in many countries**.
 > The author takes **no responsibility** for any misuse, damage, or legal consequences resulting from use of this software. Always comply with local laws and regulations.
+
+---
+
+# Main screen data:
+
+<p align=center>
+  <img src="https://github.com/user-attachments/assets/63eb92f1-4194-431e-8f74-3df0472611a7" width="300">
+</p>
 
 ---
 
@@ -39,12 +41,12 @@ https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid suppo
 
 ### SD Card File Structure
 
-- Configuration file will be created at first boot and then used to store informations. **Don't mess with it at your own - use device UI to change these values!**
+- Configuration file: config.conf will be created at first boot and then used to store informations. **Don't mess with it at your own - use device UI to change these values! (Or if you are using lite mode - be carefull)**
 - Captured handshakes will be stored inside a folder called:
   ```
   /handshake
   ```
-
+  
 ---
 
 ##  Supported Devices
@@ -116,7 +118,7 @@ You can install PlatformIO using either:
    pio run --target upload
    ```
 
->[!INFO]
+>[!NOTE]
 >For esp32s3 dev board: use ONLY lite version binary, connect sd card with these pins or define your own in settings.h
 
 |Esp pin|Sd pin|
@@ -173,6 +175,14 @@ You can install PlatformIO using either:
 ## License
 
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+
+---
+
+# CREDIT
+
+https://github.com/evilsocket/pwnagotchi - For the original pwnagothi project
+<br>
+https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid support for cardputer
 
 ---
 
