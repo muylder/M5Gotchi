@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <ESPAsyncWebServer.h>
 #include <Update.h>
+#include "githubUpdater.h"
 
 AsyncWebServer updateServer(80);
 
@@ -105,16 +106,11 @@ void updateFromSd(){
      return;
      //rebootEspWithReason("Card Mount Failed");
   }
-  cardType = SD.cardType();
-  if (cardType == CARD_NONE) {
-     rebootEspWithReason("No SD_MMC card attached");
-  }
-  else{
-    if(drawQuestionBox("Are you sure?", "Are want to update?", "This can not be undone!")){
-      updateFromFS(SD);
-      }
-    else{return;}
-  }
+
+  if(drawQuestionBox("Are you sure?", "Are want to update?", "This can not be undone!")){
+    updateFromFS(SD);
+    }
+  else{return;}
 }
 void performUpdate(Stream &updateSource, size_t updateSize) {
    if (Update.begin(updateSize)) {      
@@ -130,8 +126,9 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
          if (Update.isFinished()) {
             logMessage("Update successfully completed. Rebooting.");
             
-            drawInfoBox("Info", "Update succesful, ","please reset device", false, false);
-            while(true){}
+            drawInfoBox("Info", "Update succesful, ","restarting...", false, false);
+            delay(2000);
+            rebootEspWithReason("Update finished, rebooting now");
 
          }
          else {
@@ -187,4 +184,20 @@ void rebootEspWithReason(String reason){
     logMessage(reason);
     delay(1000);
     ESP.restart();
+}
+
+void updateFromGithub() {
+  if (WiFi.status() == WL_CONNECTED) {
+    drawInfoBox("Updating...", "Please wait...", "", false, false);
+    if (check_for_new_firmware_version()) {
+      drawInfoBox("Update available", "Downloading update...", "", false, false);
+    } else {
+      drawInfoBox("No update available", "You are already on the latest version.", "", true, false);
+      return;
+    }
+    
+    ota_update_from_url();
+  } else {
+    drawInfoBox("Error", "No WIFI connected", "Please connect to it first", true, false);
+  }
 }

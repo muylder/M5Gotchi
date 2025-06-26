@@ -1,16 +1,9 @@
 #include "EapolSniffer.h"
 #include <map>
-#define MAX_PKT_SIZE 3000
+#include "src.h"
+#include "settings.h"
+
 long lastpacketsend;
-
-// Pin mapping from the official docs
-#define SD_CS    12  // G12
-#define SD_MOSI  14  // G14
-#define SD_SCK   40  // G40
-#define SD_MISO  39  // G39
-
-SPIClass sdSPI(FSPI);  // FSPI bus is typically used on ESP32-S3
-
 File file;
 File currentPcapFile;
 int clientCount;
@@ -21,7 +14,6 @@ int packetInfoCount;
 char pcapFileName[32];
 uint8_t clients[50][6];
 int userChannel;
-
 const unsigned long HANDSHAKE_TIMEOUT = 5000;
 
 struct pcap_hdr_s {
@@ -104,21 +96,20 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging purposses*/) {
   autoChannelSwitch = (userChannel == 0);
   currentChannel = autoChannelSwitch ? 1 : userChannel;
-  sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   if(!skipSDCardCheck) {
     if (!SD.begin(SD_CS, sdSPI, 1000000)) {
       logMessage("SD card init failed");
       return false;
     }
-    // File testFile = SD.open("/test_write.txt", FILE_WRITE);
-    // if (testFile) {
-    //   testFile.println("Test OK");
-    //   testFile.close();
-    //   Serial.println("Test file written.");
-    // } else {
-    //   Serial.println("Failed to write test file.");
-    //   return false;
-    // }
+    File testFile = SD.open("/test_write.txt", FILE_WRITE);
+    if (testFile) {
+      testFile.println("Test OK");
+      testFile.close();
+      logMessage("Test file written.");
+    } else {
+      logMessage("Failed to write test file.");
+      return false;
+    }
   } else {
     logMessage("Skipping SD card check for debugging purposes.");
   }
@@ -158,13 +149,13 @@ void SnifferLoop() {
       strncpy(apName, getSSIDFromMac(packet->data + 10).c_str(), sizeof(apName) - 1);
       apName[sizeof(apName) - 1] = '\0';
       char filename[64];
-      snprintf(filename, sizeof(filename), "/handshake/handshake_%s_ID:%i.pcap", apName, random(999));
+      snprintf(filename, sizeof(filename), "/handshake/handshake_%s_ID_%i.pcap", apName, random(999));
 
       if (!SD.exists("/handshake")) {
         SD.mkdir("/handshake");
       }
 
-      file = SD.open(filename, FILE_WRITE);
+      file = SD.open(filename, FILE_WRITE, true);
       if (!file) {
         logMessage("[ERROR] fopen failed: " + String(filename));
         free(packet->data);

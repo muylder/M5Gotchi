@@ -1,5 +1,4 @@
 #include "M5Cardputer.h"
-#include "mood.h"
 #include <Update.h>
 #include <FS.h>
 #include <SD.h>
@@ -7,7 +6,7 @@
 #include "networkKit.h"
 #include "src.h"
 #include "logger.h"
-
+#pragma once
 
 struct menu {
   char name[25];
@@ -26,7 +25,7 @@ void drawTopCanvas();
 void drawRightBar();
 void drawBottomCanvas();
 void drawMenu();
-void updateUi(bool show_toolbars = false);
+void updateUi(bool show_toolbars = false, bool triggerPwnagothi = true);
 void runApp(uint8_t appID = 0);
 void drawSinglePage(menu toDraw[], uint8_t menuIDPriv, uint8_t uiSize);
 void drawMultiplePages(menu toDraw[], uint8_t menuIDPriv, uint8_t menuSize);
@@ -42,4 +41,5 @@ void logVictim(String login, String pass);
 void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String wifiChanel);
 inline void pushAll();
 inline void updateM5();
-inline void sleepFunction();
+void sleepFunction();
+void editWhitelist();

