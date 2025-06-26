@@ -30,6 +30,6 @@ jobs:
         with:
           name: firmware
           path: |
-      docs/firmware/**/*.bin
-      docs/firmware/**/*.hex
-      docs/firmware/**/*.uf2
+      .pio/build/m5stack-stamps3/**/*.bin
+      .pio/build/m5stack-stamps3/**/*.hex
+      .pio/build/m5stack-stamps3/**/*.uf2
