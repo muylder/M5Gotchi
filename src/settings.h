@@ -13,14 +13,16 @@ extern String savedAPPass;
 extern String whitelist;
 extern bool pwnagothiMode;
 extern uint8_t sessionCaptures;
-
+extern bool pwnagothiModeEnabled;
 
 #define CURRENT_VERSION "0.3"
-#define VERSION_URL "https://raw.githubusercontent.com/youruser/yourrepo/main/version.txt"
-#define UPDATE_LINK "https://www.example.com/update"
-#define TEMP_FILE_PATH "/sdcard/version.temp"
-//#define LITE_VERSION
-//#define SERIAL_LOGS
+#define NORMAL_JSON_URL "https://yourdomain.com/firmware.json"
+#define LITE_JSON_URL   "https://yourdomain.com/lite.json"
+#define TEMP_DIR        "/sd/temp/"
+#define TEMP_JSON_PATH  TEMP_DIR "update.json"
+#define TEMP_BIN_PATH   TEMP_DIR "update.bin"
+#define LITE_VERSION
+#define SERIAL_LOGS
 //#define BYPASS_SD_CHECK
 //#define USE_EXPERIMENTAL_APPS
 #define SD_CS    12  // G12
@@ -30,7 +32,6 @@ extern uint8_t sessionCaptures;
 #define MAX_PKT_SIZE 3000
 #define ROW_SIZE 40
 #define PADDING 10
-#define pwnagothiModeEnabled pwnagothiMode
 
 bool initVars();
 bool saveSettings();
