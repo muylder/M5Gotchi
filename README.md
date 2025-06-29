@@ -1,5 +1,6 @@
 >[!NOTE]
 >Hello visitor!. If you see this I don't know how you find this project but please DO NOT share info about it with anyone. You can try it at your own but I really need to work on some functions that requires this repo to be public. After testing I will relase this project ASAP. Thanks for cooperation.
+
 ![canva](https://github.com/user-attachments/assets/81a5573a-39da-4f24-bf98-888c6a2f6748)
 
 # M5Gothi
@@ -63,7 +64,7 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 | LILIGO t-embed | ⏳ Planned     | Requires GPIO adaptation       |
 
 >[!NOTE]
->For devices that I planned: I do not own any of this devices, support for them will be only made with help from testers or from enough donations. Feel free to join me with testing on discord.
+>For devices that I planned: I do not own any of this devices, support for them will be only made with help from testers. Feel free to join me with testing on discord.
 
 ---
 
@@ -142,7 +143,6 @@ You can install PlatformIO using either:
 - Press `ESC` to open the main menu
 - Use **arrow keys** to navigate
 - Exit apps using `Fn + ESC`
-- Press `G0` button to toggle the screen on/off
 - On first boot there will be created config.conf file - use it to change setting on **lite mode** compilations
 - Customize name to your likings via setting
 - Use ENTER to confirm or `y` or `n` when asked to do so
@@ -167,10 +167,7 @@ You can install PlatformIO using either:
   <img src="https://github.com/user-attachments/assets/ba45d464-f09b-4d81-b8b9-d0ca3074e64e" width="300">
   <img src="https://github.com/user-attachments/assets/1d4dfe88-0109-47bb-a71e-f5fe25f6150f" width="300">
   <img src="https://github.com/user-attachments/assets/52b26e04-b6e9-41c0-bf25-89069a821e64" width="300">
-
 </p>
-
-
 
 ---
 
@@ -191,7 +188,7 @@ https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid suppo
 ## Contributing
 
 Contributions, issue reports, and pull requests are welcome!
-To help out, fork this repo and open a PR.
+To help out, fork this repo, before opening a PR run pre_commit.sh (don't worry its safe) and finally open a PR.
 
 ---
 

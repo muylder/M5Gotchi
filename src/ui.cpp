@@ -996,7 +996,9 @@ void runApp(uint8_t appID){
       WiFi.mode(WIFI_MODE_NULL);
       drawInfoBox("INFO", "Auto mode turned off", "Enabled manual mode", true, false);
     }
-    if(appID == 38){editWhitelist();}
+    if(appID == 38){
+      editWhitelist();
+    }
     if(appID == 39){
       if(!SD.begin(SD_CS, sdSPI, 1000000)) {
         drawInfoBox("Error", "Cannot open SD card", "Check SD card!", true, true);
@@ -1646,6 +1648,7 @@ void editWhitelist(){
       }
       removeItemFromWhitelist(listToReturn[idOfItemToRemove]);
       writeID--;
+      drawInfoBox("Info", "You need to restart", "for changes to take effect", true, false);
     }
     else if (choice==3){
       delay(100);
