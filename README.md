@@ -155,7 +155,7 @@ You can install PlatformIO using either:
 
 | Method        | Status    | Description                                     |
 |---------------|-----------|-------------------------------------------------|
-| GitHub        | ✅ Done   | Update via GitHub Pages through UI (not tested) |
+| GitHub        | ✅ Done   | Update via GitHub Pages through UI              |
 | SD Card       | ✅ Done   | Place update.bin file and trigger update        |
 | Web UI        | ✅ Done   | Upload update through browser interface         |
 

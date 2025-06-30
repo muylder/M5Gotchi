@@ -3,8 +3,8 @@
 #include <SPI.h>
 
 #define CURRENT_VERSION "0.3.5"
-#define NORMAL_JSON_URL "https://devsur11.github.io/m5gothi/firmware/firmware.json"
-#define LITE_JSON_URL   "https://devsur11.github.io/m5gothi/firmware/lite.json"
+#define NORMAL_JSON_URL "https://devsur11.github.io/M5Gotchi/firmware/firmware.json"
+#define LITE_JSON_URL   "https://devsur11.github.io/M5Gotchi/firmware/lite.json"
 #define TEMP_DIR        "/temp"
 #define TEMP_JSON_PATH  TEMP_DIR "/update.json"
 #define TEMP_BIN_PATH   TEMP_DIR "/update.bin"
