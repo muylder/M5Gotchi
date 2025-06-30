@@ -1,6 +1,3 @@
->[!NOTE]
->Hello visitor!. If you see this I don't know how you find this project but please DO NOT share info about it with anyone. You can try it at your own but I really need to work on some functions that requires this repo to be public. After testing I will relase this project ASAP. Thanks for cooperation.
-
 ![canva](https://github.com/user-attachments/assets/81a5573a-39da-4f24-bf98-888c6a2f6748)
 
 # M5Gothi
