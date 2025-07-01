@@ -140,7 +140,7 @@ void pwnagothiLoop(){
                 return;
             }
         }
-        setMood(1, "(Y_Y)" , "I'm looking instde you " + attackVector + "...");
+        setMood(1, "(Y_Y)" , "I'm looking inside you " + attackVector + "...");
         updateUi(true, false);
         set_target_channel(attackVector.c_str());
         uint8_t i = 1;
