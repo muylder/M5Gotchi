@@ -10,7 +10,7 @@
 #define TEMP_BIN_PATH   TEMP_DIR "/update.bin"
 #define OLD_CONFIG_FILE "/config.conf"
 #define NEW_CONFIG_FILE "/m5gothi.conf"
-#define LITE_VERSION
+//#define LITE_VERSION
 #define SERIAL_LOGS
 //#define SKIP_AUTO_UPDATE
 //#define BYPASS_SD_CHECK
