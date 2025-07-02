@@ -1,0 +1,6 @@
+# Name,     Type, SubType, Offset,   Size
+nvs,        data, nvs,     0x9000,   0x6000
+otadata,    data, ota,     0xf000,   0x2000
+# pad between 0x11000 and 0x20000 (unused)
+app0,       app,  ota_0,   0x20000,  0x1D0000
+app1,       app,  ota_1,   0x1F0000, 0x1D0000

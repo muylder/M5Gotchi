@@ -20,7 +20,8 @@ bool pwnagothiBegin(){
     }   
     WiFi.scanNetworks(true, true);
     logMessage("Pwnagothi auto mode init!");
-    parseWhitelist();
+    uint16_t trash;
+    parseWhitelist(trash);
     pwnagothiMode = true;
     return true;
 }
@@ -39,10 +40,11 @@ void addToWhitelist(String valueToAdd){
     saveSettings();
 }
 
-String* parseWhitelist(){
-    static String result[30]; // Static to persist after function ends
-    JsonDocument jsonWhitelist;
+String* parseWhitelist(uint16_t& outCount){
+    static String result[30];
+    outCount = 0;
 
+    JsonDocument jsonWhitelist;
     DeserializationError err = deserializeJson(jsonWhitelist, whitelist);
     if (err) {
         logMessage("Failed to parse whitelist JSON");
@@ -50,16 +52,14 @@ String* parseWhitelist(){
     }
 
     JsonArray array = jsonWhitelist.as<JsonArray>();
-    uint8_t n = 0;
-
     for (JsonVariant v : array) {
-        if (n >= 30) break;
-        logMessage("parsed whitelist item - " + String(v.as<const char*>()));
-        result[n++] = String(v.as<const char*>());
+        if (outCount >= 30) break;
+        result[outCount++] = String(v.as<const char*>());
     }
 
     return result;
 }
+
 
 void parseMacFromWhitelist() {
   WiFi.mode(WIFI_MODE_STA);  // ensure we can scan
@@ -127,9 +127,10 @@ void pwnagothiLoop(){
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
         updateUi(true, false);
         delayWithUI(10);
-        String* whitelistParsed = parseWhitelist();
+        uint16_t whitelistSize;
+        String* whitelistParsed = parseWhitelist(whitelistSize);
         logMessage("Size of whiletist: " + String(sizeof(whitelistParsed)));
-        for(uint16_t i = 0; i<=sizeof(whitelistParsed); i++){
+        for(uint16_t i = 0; i<=whitelistSize; i++){
             logMessage("Whietlist check...");
             if(whitelistParsed[i] == attackVector){
                 setMood(1, "(x_x)", "Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");

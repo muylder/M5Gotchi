@@ -29,6 +29,7 @@ M5Canvas bar_right2(&M5.Display);
 M5Canvas bar_right3(&M5.Display);
 M5Canvas bar_right4(&M5.Display);
 
+#ifndef LITE_VERSION
 String funny_ssids[] = {
   "Mom Use This One",
   "Abraham Linksys",
@@ -115,7 +116,7 @@ String broken_ssids[]{
   "WiFi_???",
   "SSID_Broken",
 };
-
+#endif
 
 menu main_menu[] = {
     {"Manual mode", 1},
@@ -1554,22 +1555,81 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
 }
 
 void drawList(String toDraw[], uint8_t manu_size){
+  logMessage("Drawing list with size: " + String(manu_size));
   menu_len = manu_size;
-  
+
   singlePage = false;
-  canvas_main.fillSprite(WHITE); //Clears main display
+  canvas_main.fillSprite(WHITE); // Clears main display
   canvas_main.setTextSize(2);
   canvas_main.setTextColor(BLACK);
   canvas_main.setColor(BLACK);
   canvas_main.setTextDatum(top_left);
-  char display_str[50] = "";
-  //if(menu_current_page == 1){
-   
-  for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 5)) ; j++) {
-   sprintf(display_str, "%s %s", (menu_current_opt == j+( (menu_current_page - 1) * 5 ) ) ? ">" : " ",
-           toDraw[j+ ( (menu_current_page - 1) * 5)]);
-   int y = PADDING + (j * ROW_SIZE / 2);
-   canvas_main.drawString(display_str, 0, y);
+  char display_str[200] = "";
+
+  int maxHeight = canvas_main.height() - 10; // leave some margin
+  int maxWidth = canvas_main.width() - 10;   // leave some margin
+  int lineHeight = 18; // Adjust as needed
+  int y = PADDING;
+  int itemsShown = 0;
+  int itemIndex = 0;
+  int startIndex = 0;
+
+  // Calculate which item to start from, so that the selected item is visible
+  int totalLines = 0;
+  int selectedLine = 0;
+  for (uint8_t i = 0; i < menu_len; i++) {
+    String prefix = (menu_current_opt == i) ? ">" : " ";
+    String item = prefix + toDraw[i];
+    int itemLen = item.length();
+    int usedLines = 0;
+    int start = 0;
+    while (start < itemLen) {
+      int len = 1;
+      while (start + len <= itemLen && canvas_main.textWidth(item.substring(start, start + len)) < maxWidth) {
+        len++;
+      }
+      len--;
+      start += len;
+      usedLines++;
+    }
+    if (i < menu_current_opt) {
+      selectedLine += usedLines;
+    }
+    totalLines += usedLines;
+  }
+
+  // If the selected item is out of view, scroll so it's visible
+  int linesPerPage = maxHeight / lineHeight;
+  int firstVisibleLine = 0;
+  if (selectedLine + 1 > linesPerPage) {
+    firstVisibleLine = selectedLine + 1 - linesPerPage;
+  }
+
+  int currentLine = 0;
+  for (uint8_t i = 0; i < menu_len; i++) {
+    String prefix = (menu_current_opt == i) ? ">" : " ";
+    String item = prefix + toDraw[i];
+    int itemLen = item.length();
+    int start = 0;
+    while (start < itemLen) {
+      int len = 1;
+      while (start + len <= itemLen && canvas_main.textWidth(item.substring(start, start + len)) < maxWidth) {
+        len++;
+      }
+      len--;
+      if (currentLine >= firstVisibleLine && (currentLine - firstVisibleLine) * lineHeight + y < maxHeight) {
+        String lineStr = item.substring(start, start + len);
+        canvas_main.drawString(lineStr, 0, y + (currentLine - firstVisibleLine) * lineHeight);
+      }
+      start += len;
+      currentLine++;
+      if ((currentLine - firstVisibleLine) * lineHeight + y >= maxHeight) {
+        break;
+      }
+    }
+    if ((currentLine - firstVisibleLine) * lineHeight + y >= maxHeight) {
+      break;
+    }
   }
 }
 
@@ -1654,20 +1714,14 @@ void sleepFunction(){
 #ifndef LITE_VERSION
 
 void editWhitelist(){
-  String* whitelist = parseWhitelist();
-  s8_t writeID = 0;
-  // Count only non-empty entries
-  for (int i = 0; i < sizeof(parseWhitelist()); i++) { // assuming max 50 entries, adjust as needed
-    if (whitelist[i].length() > 0) {
-      writeID++;
-    }
-  }
+  uint16_t writeID = 0;
+  String* whitelist = parseWhitelist(writeID);
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
   delay(100);
   while(true){
     initVars();
     logMessage("WRITE ID: " + String(writeID));
-    String* listToReturn = parseWhitelist();
+    String* listToReturn = parseWhitelist(writeID);
     sleepFunction();
     s8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
     if (choice==0){
