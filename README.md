@@ -196,3 +196,5 @@ Join our Discord community for support, discussion, and sneak peeks at upcoming 
 https://discord.gg/2TZFcndkhB
 
 ---
+
+<meta name="google-site-verification" content="plk4nNqZv5EXzW8h6Mm5K6OhCSG5ZcXG-ds8xP3ZlPQ" />
