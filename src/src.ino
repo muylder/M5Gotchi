@@ -63,7 +63,6 @@ void setup() {
   #endif
 
   if(pwnagothiMode) {
-    pwnagothiMode = true;
     logMessage("Pwnagothi mode enabled");
     pwnagothiBegin();
   } else {

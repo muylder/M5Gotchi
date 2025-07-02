@@ -93,6 +93,30 @@ String rickroll_ssids[]{
   "08 and hurt you",
 };
 
+String broken_ssids[]{
+  "Broken_Wi-Fi",
+  "Unstable_Network",
+  "Corrupted_AP",
+  "Glitchy_SSID",
+  "???",
+  "Error_404_AP",
+  "NULL_NETWORK",
+  "WiFi_Broken",
+  "SSID_NOT_FOUND",
+  "WiFi?WiFi!",
+  "Unkn0wn",
+  "WiFi_Failure",
+  "Lost_Connection",
+  "AP_Crash",
+  "WiFi_Glitch",
+  "SSID_#@!$%",
+  "Network_Error",
+  "WiFi_Bugged",
+  "WiFi_???",
+  "SSID_Broken",
+};
+
+
 menu main_menu[] = {
     {"Manual mode", 1},
     {"Auto", 4},
@@ -697,7 +721,10 @@ void runApp(uint8_t appID){
         uint8_t ssidChoice = drawMultiChoice("Select list", ssidMenu, 4 , 2 , 2);
         if(ssidChoice==0){
           broadcastFakeSSIDs( funny_ssids, 48, sound);
-          }
+        }
+        else if (ssidChoice==1){
+          broadcastFakeSSIDs( broken_ssids, 20, sound);
+        }
         else if (ssidChoice==2){
           broadcastFakeSSIDs( rickroll_ssids, 8, sound);
           menu_current_opt = 0;

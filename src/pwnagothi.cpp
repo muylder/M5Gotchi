@@ -21,7 +21,7 @@ bool pwnagothiBegin(){
     WiFi.scanNetworks(true, true);
     logMessage("Pwnagothi auto mode init!");
     parseWhitelist();
-    pwnagothiModeEnabled = true;
+    pwnagothiMode = true;
     return true;
 }
 
@@ -208,6 +208,7 @@ void pwnagothiLoop(){
                 pwned_ap++;
                 sessionCaptures++;
                 saveSettings();
+                delayWithUI(50);
                 break;
             }
         }

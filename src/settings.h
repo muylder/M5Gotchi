@@ -8,7 +8,9 @@
 #define TEMP_DIR        "/temp"
 #define TEMP_JSON_PATH  TEMP_DIR "/update.json"
 #define TEMP_BIN_PATH   TEMP_DIR "/update.bin"
-//#define LITE_VERSION
+#define OLD_CONFIG_FILE "/config.conf"
+#define NEW_CONFIG_FILE "/m5gothi.conf"
+#define LITE_VERSION
 #define SERIAL_LOGS
 //#define SKIP_AUTO_UPDATE
 //#define BYPASS_SD_CHECK
