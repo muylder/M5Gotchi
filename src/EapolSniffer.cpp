@@ -112,7 +112,7 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
             }
 
             logMessage("EAPOL Detected");
-
+            logMessage(String(getEAPOLOrder((uint8_t*)payload)));
             if (len == 0 || len > MAX_PKT_SIZE) return;
 
             CapturedPacket *p = (CapturedPacket*) malloc(sizeof(CapturedPacket));
@@ -178,19 +178,22 @@ bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging pur
 }
 
 char apName[18];
+static int eapolCount = 0; // count EAPOL frames in sequence
 
 void SnifferLoop() {
     CapturedPacket *packet = NULL;
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
+        logMessage("Processing packet...");
         String apKey = String(apName);
 
         // ===== handshake validation =====
-        static int eapolCount = 0; // count EAPOL frames in sequence
         if (isEapolFrame(packet->data, packet->len)) {
+            logMessage("EAPOL count++");
             eapolCount++;
+            logMessage("Now " + String(eapolCount));
         }
-
-        if (isNewHandshake() && eapolCount >= 2) { 
+        logMessage(String(isNewHandshake()) + ", for new file");
+        if (eapolCount == 4) { 
             // at least Msg1 + Msg2 captured before saving
             delay(1000); 
 
@@ -295,6 +298,31 @@ bool isEapolFrame(const uint8_t *data, uint16_t len) {
         return true;
     }
     return false;
+}
+
+uint8_t getEAPOLOrder(uint8_t* buf){
+    if(buf[0] != 0x88 || buf[1] != 0x8E || buf[0] != 0x08) return 0; // Not EAPOL
+    // EAPOL Key Information field is at offset 38-39 (little endian)
+    // Message 1: (Key MIC=0, Key ACK=1, Key Install=0)
+    // Message 2: (Key MIC=1, Key ACK=0, Key Install=0)
+    // Message 3: (Key MIC=1, Key ACK=1, Key Install=1)
+    // Message 4: (Key MIC=1, Key ACK=0, Key Install=0, Secure=1)
+    uint16_t key_info = (buf[38] << 8) | buf[39];
+    bool mic      = key_info & (1 << 8);
+    bool ack      = key_info & (1 << 7);
+    bool install  = key_info & (1 << 6);
+    bool secure   = key_info & (1 << 9);
+
+    if (!mic && ack && !install) {
+        return 1; // Message 1
+    } else if (mic && !ack && !install && !secure) {
+        return 2; // Message 2
+    } else if (mic && ack && install) {
+        return 3; // Message 3
+    } else if (mic && !ack && !install && secure) {
+        return 4; // Message 4
+    }
+    return 100;
 }
 
 static inline int ieee80211_hdrlen(uint16_t fc)

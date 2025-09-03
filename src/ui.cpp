@@ -11,7 +11,6 @@
 #include "pwnagothi.h"
 #include "EapolSniffer.h"
 #include "mood.h"
-#include "pwngrid.h"
 #include "updater.h"
 #include <Update.h>
 #include <FS.h>
@@ -201,6 +200,7 @@ String passCaptured = "";
 bool cloned;
 
 void initUi() {
+  void initPwngrid();
   M5.Display.setRotation(1);
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(TFT_WHITE);
@@ -252,9 +252,6 @@ bool isPrevPressed() {
 
 void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   if(pwnagothiMode && triggerPwnagothi){
-    if(WiFi.getMode() == WIFI_MODE_STA || WiFi.getMode() == WIFI_MODE_APSTA){
-      pwngridAdvertise();
-    }
     pwnagothiLoop();
   }
   #ifndef LITE_VERSION
@@ -1054,7 +1051,7 @@ void runApp(uint8_t appID){
       updateActivity(true);
     }
     if(appID == 40){
-        String name = userInput("New value", "Change Hostname to:", 5);
+        String name = userInput("New value", "Change Hostname to:", 18);
         if(name != ""){
           hostname = name;
           if(saveSettings()){

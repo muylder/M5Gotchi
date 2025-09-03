@@ -27,6 +27,7 @@ void setup() {
   Serial.begin(115200);
   initM5();
   initUi();
+  WiFi.mode(WIFI_MODE_STA);
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
   if(initVars()){}
   else{

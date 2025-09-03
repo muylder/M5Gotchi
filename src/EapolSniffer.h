@@ -28,3 +28,4 @@ String getSSIDFromMac(const uint8_t* mac);
 bool isNewHandshake();
 bool isEapolFrame(const uint8_t *data, uint16_t len);
 static inline int ieee80211_hdrlen(uint16_t fc);
+uint8_t getEAPOLOrder(uint8_t* buf);

@@ -104,7 +104,6 @@ void pwnagothiLoop(){
             setMood(1, "(*_*)", "Scan compleated proceding to attack!");
             updateUi(true, false);
             delayWithUI(100);
-            //return;
         }
     }
     else{
@@ -114,6 +113,7 @@ void pwnagothiLoop(){
             updateUi(true, false);
             delayWithUI(50);
             pwnagothiScan = true;
+            return;
         }
         if(wifiCheckInt < WiFi.scanComplete()){
             logMessage("Vector name filled: " + WiFi.SSID(wifiCheckInt));
@@ -160,8 +160,9 @@ void pwnagothiLoop(){
                 logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
                 SnifferEnd();
                 updateUi(true, false);
-                delay(70);
-                break;
+                delay(100);
+                wifiCheckInt++;
+                return;
             }
             if(clients[i] != ""){
                 logMessage("Client count: " + String(clientLen));
@@ -170,7 +171,7 @@ void pwnagothiLoop(){
                 logMessage("Client BSSID is: "+ clients[clientLen]);
                 logMessage("(d_b) I think that " + clients[i] + "doesn't need an internet...");
                 updateUi(true, false);
-                delayWithUI(20);
+                delayWithUI(80);
                 //stopClientSniffing();
                 esp_wifi_set_promiscuous(false);
                 break;
@@ -196,6 +197,7 @@ void pwnagothiLoop(){
                 SnifferEnd();
                 updateUi(true, false);
                 delay(70);
+                wifiCheckInt++;
                 break;
             }
             updateUi(true, false);
@@ -208,6 +210,7 @@ void pwnagothiLoop(){
                 addToWhitelist(attackVector);
                 pwned_ap++;
                 sessionCaptures++;
+                wifiCheckInt++;
                 saveSettings();
                 delayWithUI(50);
                 break;
