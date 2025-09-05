@@ -46,6 +46,7 @@ volatile uint32_t packetCount = 0;
 uint32_t handshakeFileCount = 0;
 unsigned long lastHandshakeMillis = 0;
 const unsigned long handshakeTimeout = 5000;
+uint8_t eapolCount = 0; // count EAPOL frames in sequence
 
 struct APFileContext {
   String apName;
@@ -112,7 +113,8 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
             }
 
             logMessage("EAPOL Detected");
-            logMessage(String(getEAPOLOrder((uint8_t*)payload)));
+            
+            eapolCount += getEAPOLOrder((uint8_t*)payload);
             if (len == 0 || len > MAX_PKT_SIZE) return;
 
             CapturedPacket *p = (CapturedPacket*) malloc(sizeof(CapturedPacket));
@@ -178,31 +180,43 @@ bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging pur
 }
 
 char apName[18];
-static int eapolCount = 0; // count EAPOL frames in sequence
 
 void SnifferLoop() {
     CapturedPacket *packet = NULL;
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
-        logMessage("Processing packet...");
         String apKey = String(apName);
 
-        // ===== handshake validation =====
-        if (isEapolFrame(packet->data, packet->len)) {
-            logMessage("EAPOL count++");
-            eapolCount++;
-            logMessage("Now " + String(eapolCount));
-        }
-        logMessage(String(isNewHandshake()) + ", for new file");
-        if (eapolCount == 4) { 
+        //logMessage(String(isNewHandshake()) + ", for new file");
+        if (isNewHandshake()) { 
+            logMessage("New handshake sequence detected.");
             // at least Msg1 + Msg2 captured before saving
-            delay(1000); 
+            if (eapolCount >= 10){ //msg1 + msg2 + msg3 + msg4 = 10
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                if(eapolCount >= 10){
+                    eapolCount = 0; // reset for next sequence
+                    logMessage("Incomplete handshake sequence, skipping...");
+                    free(packet->data);
+                    free(packet);
+                    return;
+                }
+            }
+            logMessage("Complete handshake sequence captured. Proceeding to save.");
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+            eapolCount = 0; // reset for next sequence
 
             strncpy(apName, getSSIDFromMac(packet->data + 10).c_str(), sizeof(apName) - 1);
             apName[sizeof(apName) - 1] = '\0';
 
+            // Get BSSID from packet (addr3, offset 16..21)
+            char bssidStr[18];
+            const uint8_t* bssid = packet->data + 16;
+            snprintf(bssidStr, sizeof(bssidStr), "%02X-%02X-%02X-%02X-%02X-%02X",
+                     bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+
             char filename[64];
-            snprintf(filename, sizeof(filename), "/handshake/handshake_%s_ID_%i.pcap",
-                     apName, random(999));
+            snprintf(filename, sizeof(filename), "/handshake/%s_%s_ID_%i.pcap",
+                     bssidStr, apName, random(999));
 
             if (!SD.exists("/handshake")) {
                 SD.mkdir("/handshake");
@@ -300,30 +314,22 @@ bool isEapolFrame(const uint8_t *data, uint16_t len) {
     return false;
 }
 
-uint8_t getEAPOLOrder(uint8_t* buf){
-    if(buf[0] != 0x88 || buf[1] != 0x8E || buf[0] != 0x08) return 0; // Not EAPOL
-    // EAPOL Key Information field is at offset 38-39 (little endian)
-    // Message 1: (Key MIC=0, Key ACK=1, Key Install=0)
-    // Message 2: (Key MIC=1, Key ACK=0, Key Install=0)
-    // Message 3: (Key MIC=1, Key ACK=1, Key Install=1)
-    // Message 4: (Key MIC=1, Key ACK=0, Key Install=0, Secure=1)
-    uint16_t key_info = (buf[38] << 8) | buf[39];
-    bool mic      = key_info & (1 << 8);
-    bool ack      = key_info & (1 << 7);
-    bool install  = key_info & (1 << 6);
-    bool secure   = key_info & (1 << 9);
+uint8_t getEAPOLOrder(uint8_t *buf) {
+    uint16_t key_info = (buf[39] << 8) | buf[40];  // always big-endian
 
-    if (!mic && ack && !install) {
-        return 1; // Message 1
-    } else if (mic && !ack && !install && !secure) {
-        return 2; // Message 2
-    } else if (mic && ack && install) {
-        return 3; // Message 3
-    } else if (mic && !ack && !install && secure) {
-        return 4; // Message 4
-    }
-    return 100;
+    bool mic     = key_info & (1 << 8);
+    bool ack     = key_info & (1 << 7);
+    bool install = key_info & (1 << 6);
+    bool secure  = key_info & (1 << 9);
+
+    if (!mic && ack && !install) return 1; // Message 1
+    if (mic && !ack && !install && !secure) return 2; // Message 2
+    if (mic && ack && install) return 3; // Message 3
+    if (mic && !ack && !install && secure) return 4; // Message 4
+
+    return 100; // Unknown
 }
+
 
 static inline int ieee80211_hdrlen(uint16_t fc)
 {
