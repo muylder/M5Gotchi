@@ -17,7 +17,7 @@ bool pwnagothiMode = false;
 uint8_t sessionCaptures;
 bool pwnagothiModeEnabled = false;
 String bg_color = "#ffffffff";
-String tx_color = "#000000ff";
+String tx_color = "#00000000";
 bool skip_eapol_check = false;
 
 bool migrateOldConfig() {
@@ -63,9 +63,9 @@ bool migrateOldConfig() {
     pwnagothiModeEnabled = doc["auto_mode_on_startup"];
 
     // New options: bg_color, tx_color, skip_eapol_check
-    String bg_color = doc.containsKey("bg_color") ? String(doc["bg_color"].as<const char*>()) : "#000000";
-    String tx_color = doc.containsKey("tx_color") ? String(doc["tx_color"].as<const char*>()) : "#FFFFFF";
-    bool skip_eapol_check = doc.containsKey("skip_eapol_check") ? doc["skip_eapol_check"].as<bool>() : false;
+    String bg_color = doc["bg_color"].is<const char*>() ? String(doc["bg_color"].as<const char*>()) : "#000000";
+    String tx_color = doc["tx_color"].is<const char*>() ? String(doc["tx_color"].as<const char*>()) : "#FFFFFF";
+    bool skip_eapol_check = doc["skip_eapol_check"].is<bool>() ? doc["skip_eapol_check"].as<bool>() : false;
 
     // Save to new config file
     JsonDocument newConfig;
@@ -96,27 +96,26 @@ bool migrateOldConfig() {
     }
 }
 
-bool initVars(){
-    if(!SD.begin(SD_CS, sdSPI, 1000000)){
+bool initVars() {
+    if (!SD.begin(SD_CS, sdSPI, 1000000)) {
         logMessage("JSON parser failed, sd card init failed");
         return false;
     }
 
-    // Migrate old config if present
     migrateOldConfig();
 
-    if(SD.open(NEW_CONFIG_FILE, "r", false)){
-        logMessage("Conf file found, loading data");
+    bool configChanged = false;
+    JsonDocument config;
 
+    if (SD.exists(NEW_CONFIG_FILE)) {
+        logMessage("Conf file found, loading data");
         File file = SD.open(NEW_CONFIG_FILE, FILE_READ);
         if (!file) {
             logMessage("Failed to open config file");
             return false;
         }
 
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, file);
-
+        DeserializationError error = deserializeJson(config, file);
         file.close();
 
         if (error) {
@@ -124,39 +123,62 @@ bool initVars(){
             logMessage(error.c_str());
             return false;
         }
-        logMessage("Setting values up");
-        hostname = String(doc["Hostname"].as<const char*>());
-        sound = doc["sound"];
-        brightness = doc["brightness"];
-        pwned_ap = doc["pwned_ap"];
-        savedApSSID = String(doc["savedApSSID"].as<const char*>());
-        savedAPPass = String(doc["savedAPPass"].as<const char*>());
-        whitelist = String(doc["whitelist"].as<const char*>());
-        pwnagothiMode = doc["auto_mode_on_startup"];
-        pwnagothiModeEnabled = doc["auto_mode_on_startup"];
 
-        // Load new options if present, else keep defaults
-        if (doc.containsKey("bg_color")) bg_color = String(doc["bg_color"].as<const char*>());
-        if (doc.containsKey("tx_color")) tx_color = String(doc["tx_color"].as<const char*>());
-        if (doc.containsKey("skip_eapol_check")) skip_eapol_check = doc["skip_eapol_check"].as<bool>();
-    }
-    else{
+        // Load each option, fallback to default if missing
+        if (config["Hostname"].is<const char*>()) hostname = String(config["Hostname"].as<const char*>());
+        else configChanged = true;
+
+        if (config["sound"].is<bool>()) sound = config["sound"];
+        else configChanged = true;
+
+        if (config["brightness"].is<int>()) brightness = config["brightness"];
+        else configChanged = true;
+
+        if (config["pwned_ap"].is<uint16_t>()) pwned_ap = config["pwned_ap"];
+        else configChanged = true;
+
+        if (config["savedApSSID"].is<const char*>()) savedApSSID = String(config["savedApSSID"].as<const char*>());
+        else configChanged = true;
+
+        if (config["savedAPPass"].is<const char*>()) savedAPPass = String(config["savedAPPass"].as<const char*>());
+        else configChanged = true;
+
+        if (config["whitelist"].is<const char*>()) whitelist = String(config["whitelist"].as<const char*>());
+        else configChanged = true;
+
+        if (config["auto_mode_on_startup"].is<bool>()) {
+            pwnagothiMode = config["auto_mode_on_startup"];
+            pwnagothiModeEnabled = config["auto_mode_on_startup"];
+        } else configChanged = true;
+
+        if (config["bg_color"].is<const char*>()) bg_color = String(config["bg_color"].as<const char*>());
+        else configChanged = true;
+
+        if (config["tx_color"].is<const char*>()) tx_color = String(config["tx_color"].as<const char*>());
+        else configChanged = true;
+
+        if (config["skip_eapol_check"].is<bool>()) skip_eapol_check = config["skip_eapol_check"].as<bool>();
+        else configChanged = true;
+    } else {
         logMessage("Conf file not found, creating one");
-        JsonDocument config;
-        config["Hostname"] = hostname;
-        config["sound"] = sound;
-        config["brightness"] = brightness;
-        config["pwned_ap"] = pwned_ap;
-        config["savedApSSID"] = savedApSSID;
-        config["savedAPPass"] = savedAPPass;
-        config["whitelist"] = whitelist;
-        config["auto_mode_on_startup"] = pwnagothiModeEnabled;
-        config["bg_color"] = bg_color;
-        config["tx_color"] = tx_color;
-        config["skip_eapol_check"] = skip_eapol_check;
+        configChanged = true;
+    }
 
-        logMessage("JSON data creation successful, proceeding to save");
+    // Always update config with all required keys
+    config["Hostname"] = hostname;
+    config["sound"] = sound;
+    config["brightness"] = brightness;
+    config["pwned_ap"] = pwned_ap;
+    config["savedApSSID"] = savedApSSID;
+    config["savedAPPass"] = savedAPPass;
+    config["whitelist"] = whitelist;
+    config["auto_mode_on_startup"] = pwnagothiModeEnabled;
+    config["bg_color"] = bg_color;
+    config["tx_color"] = tx_color;
+    config["skip_eapol_check"] = skip_eapol_check;
 
+    if (configChanged) {
+        logMessage("Config updated with missing/default values, saving...");
         FConf = SD.open(NEW_CONFIG_FILE, FILE_WRITE, true);
         if (FConf) {
             String output;
@@ -168,30 +190,11 @@ bool initVars(){
             logMessage("Failed to open config file for writing");
         }
     }
+
     return true;
 }
 
 bool saveSettings(){
-    // Load current values or defaults for new options
-    String bg_color = "#000000";
-    String tx_color = "#FFFFFF";
-    bool skip_eapol_check = false;
-
-    // Try to load from existing config file if present
-    if (SD.exists(NEW_CONFIG_FILE)) {
-        File file = SD.open(NEW_CONFIG_FILE, FILE_READ);
-        if (file) {
-            JsonDocument doc;
-            DeserializationError error = deserializeJson(doc, file);
-            file.close();
-            if (!error) {
-                if (doc.containsKey("bg_color")) bg_color = String(doc["bg_color"].as<const char*>());
-                if (doc.containsKey("tx_color")) tx_color = String(doc["tx_color"].as<const char*>());
-                if (doc.containsKey("skip_eapol_check")) skip_eapol_check = doc["skip_eapol_check"].as<bool>();
-            }
-        }
-    }
-
     JsonDocument config;
     config["Hostname"] = hostname;
     config["sound"] = sound;

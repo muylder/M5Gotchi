@@ -163,14 +163,17 @@ menu pwngotchi_menu[] = {
 };
 
 menu settings_menu[] = {
-    {"Pwnagothi on boot", 48},
-    {"Change Hostname", 40},
-    {"Display brightness", 41},
-    {"Sound", 42},
-    {"Connect to wifi", 43},
-    {"Update system", 44},
-    {"About", 45},
-    {"Power off", 46}
+  {"Pwnagothi on boot", 48},
+  {"Change Hostname", 40},
+  {"Theme", 50},
+  {"Skip EAPOL check", 49},
+  {"Display brightness", 41},
+  {"Sound", 42},
+  {"Connect to wifi", 43},
+  {"Update system", 44},
+  {"Factory reset", 51},
+  {"About", 45},
+  {"Power off", 46}
 };
 
 
@@ -220,13 +223,16 @@ uint16_t hexToRGB565(String hex) {
   return RGBToRGB565(r, g, b);
 }
 
-void initUi() {
+void initColorSettings(){
   bg_color_rgb565 = hexToRGB565(bg_color);
   tx_color_rgb565 = hexToRGB565(tx_color);
+}
+
+void initUi() {
   M5.Display.setRotation(1);
   M5.Display.setTextSize(1);
-  M5.Display.fillScreen(TFT_WHITE);
-  M5.Display.setTextColor(BLACK);
+  M5.Display.fillScreen(bg_color_rgb565);
+  M5.Display.setTextColor(tx_color_rgb565);
 
   display_w = M5.Display.width();
   display_h = M5.Display.height();
@@ -239,11 +245,11 @@ void initUi() {
 
   canvas_top.createSprite(display_w, canvas_top_h);
   canvas_bot.createSprite(display_w, canvas_bot_h);
-  canvas_main.createSprite(display_w - (display_w * 0.02), canvas_h);
-  bar_right.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
-  bar_right2.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
-  bar_right3.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
-  bar_right4.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
+  canvas_main.createSprite(display_w /*- (display_w * 0.02)*/, canvas_h);
+  // bar_right.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
+  // bar_right2.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
+  // bar_right3.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
+  // bar_right4.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
   logMessage("UI initialized");
 }
 
@@ -305,17 +311,17 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
     menu_current_pages = 2;
     menu_len = 6;
     #ifdef USE_EXPERIMENTAL_APPS
-    drawMultiplePages(main_menu, 1, 6);
+    drawMenuList(main_menu, 1, 6);
     #else
-    drawMultiplePages(main_menu, 1, 3);
+    drawMenuList(main_menu, 1, 3);
     #endif
-    drawMenu();
+    //drawMenu();
   } 
   else if (menuID == 2){
     if(!pwnagothiMode)
     {
-      drawMultiplePages( wifi_menu , 2, 6);
-      drawMenu();
+      drawMenuList( wifi_menu , 2, 6);
+      //drawMenu();
     }
     else{
       drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
@@ -327,7 +333,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   else if (menuID == 3){
     if(!pwnagothiMode)
     {
-      drawMultiplePages( bluetooth_menu , 3, 6);
+      drawMenuList( bluetooth_menu , 3, 6);
       drawMenu();
     }
     else{
@@ -339,7 +345,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   else if (menuID == 4){
     if(!pwnagothiMode)
     {
-      drawMultiplePages( IR_menu , 4, 5);
+      drawMenuList( IR_menu , 4, 5);
       drawMenu();
     }
     else{
@@ -350,15 +356,15 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   }
   #endif
   else if (menuID == 5){
-    drawMultiplePages( pwngotchi_menu , 5, 4);
-    drawMenu();
+    drawMenuList( pwngotchi_menu , 5, 4);
+    //drawMenu();
     
   }
   else if (menuID == 6){
     if(!pwnagothiMode)
     {
-      drawMultiplePages( settings_menu , 6, 8);
-      drawMenu();
+      drawMenuList( settings_menu , 6, 11);
+      //drawMenu();
     }
     else{
       drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
@@ -375,7 +381,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   #ifdef LITE_VERSION
     drawMood(mood_face, mood_phrase);
   #endif 
-  drawRightBar();
+  //drawRightBar();
 
   M5.Display.startWrite();
   if (show_toolbars) {
@@ -392,89 +398,16 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
 }
 
 void drawRightBar() {
-  if(menuID){
-    if(menu_current_pages == 1){
-      bar_right.fillSprite(BLACK);
-      bar_right2.fillSprite(BLACK);
-      bar_right3.fillSprite(BLACK);
-      bar_right4.fillSprite(BLACK);
-    }
-    else if(menu_current_pages == 2){
-      if(menu_current_page ==1){
-        bar_right.fillSprite(BLACK);
-        bar_right2.fillSprite(BLACK);
-        bar_right3.fillSprite(WHITE);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page ==2){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(WHITE);
-        bar_right3.fillSprite(BLACK);
-        bar_right4.fillSprite(BLACK);
-      }
-    }
-    else if(menu_current_pages == 3){
-      if (menu_current_page == 1){
-        bar_right.fillSprite(BLACK);
-        bar_right2.fillSprite(BLACK);
-        bar_right3.fillSprite(WHITE);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page ==2){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(BLACK);
-        bar_right3.fillSprite(BLACK);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page ==3){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(WHITE);
-        bar_right3.fillSprite(BLACK);
-        bar_right4.fillSprite(BLACK);
-      }
-    }
-    else if(menu_current_pages == 4){
-      if (menu_current_page == 1){
-        bar_right.fillSprite(BLACK);
-        bar_right2.fillSprite(WHITE);
-        bar_right3.fillSprite(WHITE);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page == 2){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(BLACK);
-        bar_right3.fillSprite(WHITE);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page == 3){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(WHITE);
-        bar_right3.fillSprite(BLACK);
-        bar_right4.fillSprite(WHITE);
-      }
-      else if(menu_current_page == 4){
-        bar_right.fillSprite(WHITE);
-        bar_right2.fillSprite(WHITE);
-        bar_right3.fillSprite(WHITE);
-        bar_right4.fillSprite(BLACK);
-      }
-    }
-  }  
-  else { 
-    bar_right.fillSprite(WHITE);
-    bar_right2.fillSprite(WHITE);
-    bar_right3.fillSprite(WHITE);
-    bar_right4.fillSprite(WHITE);
-  }
+  //TODO
 }
 
-inline void resetSprite(){bar_right.fillSprite(WHITE);}
+inline void resetSprite(){bar_right.fillSprite(bg_color_rgb565);}
 
 void drawTopCanvas() {
-  canvas_top.fillSprite(WHITE);
+  canvas_top.fillSprite(bg_color_rgb565);
   canvas_top.setTextSize(1);
-  canvas_top.setTextColor(BLACK);
-  canvas_top.setColor(BLACK);
+  canvas_top.setTextColor(tx_color_rgb565);
+  canvas_top.setColor(tx_color_rgb565);
   canvas_top.setTextDatum(top_left);
   canvas_top.drawString("CH:" + String(WiFi.channel()) + " AP: " + String(WiFi.scanComplete()), 0, 3);
   canvas_top.setTextDatum(top_right);
@@ -495,10 +428,10 @@ void drawTopCanvas() {
 }
 
 void drawBottomCanvas() {
-  canvas_bot.fillSprite(WHITE);
+  canvas_bot.fillSprite(bg_color_rgb565);
   canvas_bot.setTextSize(1);
-  canvas_bot.setTextColor(BLACK);
-  canvas_bot.setColor(BLACK);
+  canvas_bot.setTextColor(tx_color_rgb565);
+  canvas_bot.setColor(tx_color_rgb565);
   canvas_bot.setTextDatum(top_left);
   uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
@@ -529,15 +462,15 @@ void drawBottomCanvas() {
 }
 
 void drawMood(String face, String phrase) {
-  canvas_main.fillSprite(WHITE);
+  canvas_main.fillSprite(bg_color_rgb565);
   canvas_main.setTextSize(1.5);
   canvas_main.setTextDatum(top_left);
   canvas_main.setCursor(3, 10);
   canvas_main.println(hostname + ">");
   canvas_main.setTextSize(4);
   canvas_main.setCursor(5, 10);
-  canvas_main.setTextColor(BLACK);
-  canvas_main.setColor(BLACK);
+  canvas_main.setTextColor(tx_color_rgb565);
+  canvas_main.setColor(tx_color_rgb565);
   //canvas_main.setTextStyle(BOLD);
   canvas_main.drawString(face, 5 , 30);
   canvas_main.setTextSize(1.5);
@@ -545,64 +478,18 @@ void drawMood(String face, String phrase) {
   canvas_main.println("> " + phrase);
 }
 
-#ifndef LITE_VERSION
-
-void drawSinglePage(menu toDraw[], uint8_t menuIDPriv, uint8_t menuSize ) {
-  menu_current_pages = 1;
-  menu_len = menuSize;
-  menuID = menuIDPriv;
-  singlePage = true;
-  canvas_main.fillSprite(WHITE); //Clears main display
-  canvas_main.setTextSize(2);
-  canvas_main.setTextColor(BLACK);
-  canvas_main.setColor(BLACK);
-  canvas_main.setTextDatum(top_left);
-  char display_str[50] = "";
-   
-  for (uint8_t i = 0; i < 5; i++) {
-     sprintf(display_str, "%s %s", (menu_current_opt == i) ? ">" : " ",
-             toDraw[i].name);
-     int y = PADDING + (i * ROW_SIZE / 2);
-     canvas_main.drawString(display_str, 0, y);
-    }
-  
-}
-
-void drawMultiplePages(menu toDraw[], uint8_t menuIDPriv, uint8_t menuSize) {
-  menuID = menuIDPriv;
-  menu_len = menuSize;
-  
-  singlePage = false;
-  canvas_main.fillSprite(WHITE); //Clears main display
-  canvas_main.setTextSize(2);
-  canvas_main.setTextColor(BLACK);
-  canvas_main.setColor(BLACK);
-  canvas_main.setTextDatum(top_left);
-  char display_str[50] = "";
-  //if(menu_current_page == 1){
-   
-  for (uint8_t j = 0; j < (menuSize - ((menu_current_page - 1) * 5)) ; j++) {
-   sprintf(display_str, "%s %s", (menu_current_opt == j+( (menu_current_page - 1) * 5 ) ) ? ">" : " ",
-           toDraw[j+ ( (menu_current_page - 1) * 5)].name);
-   int y = PADDING + (j * ROW_SIZE / 2);
-   canvas_main.drawString(display_str, 0, y);
-  }
-}
-
-#endif
-
 void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool isCritical) {
   appRunning = true;
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
     if(canBeQuit){delay(100);}
-    canvas_main.fillScreen(TFT_WHITE);
-    canvas_main.setTextColor(BLACK);
-    canvas_main.clear(TFT_WHITE);
+    canvas_main.fillScreen(bg_color_rgb565);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.clear(bg_color_rgb565);
     canvas_main.setTextSize(3);
     if(isCritical){canvas_main.setColor(RED);}
-    else {canvas_main.setColor(BLACK);}
+    else {canvas_main.setColor(tx_color_rgb565);}
     canvas_main.setTextDatum(middle_center);
     canvas_main.drawString(tittle, canvas_center_x, canvas_h / 4);
     canvas_main.setTextSize(1.5);
@@ -644,14 +531,14 @@ void runApp(uint8_t appID){
   menu_current_page = 1;
   menuID = 0; 
   if(appID){
-    if(appID == 1){drawMultiplePages( wifi_menu , 2, 6);}
+    if(appID == 1){drawMenuList( wifi_menu , 2, 6);}
     #ifdef USE_EXPERIMENTAL_APPS
-    if(appID == 2){drawMultiplePages(bluetooth_menu, 3, 6);}
-    if(appID == 3){drawSinglePage(IR_menu, 4, 5 );}
+    if(appID == 2){drawMenuList(bluetooth_menu, 3, 6);}
+    if(appID == 3){drawMenuList(IR_menu, 4, 5 );}
     #endif
-    if(appID == 4){drawSinglePage(pwngotchi_menu, 5 , 3 );}
+    if(appID == 4){drawMenuList(pwngotchi_menu, 5 , 3 );}
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
-    if(appID == 6){drawMultiplePages( settings_menu , 6, 8);}
+    if(appID == 6){drawMenuList(settings_menu ,6  ,11);}
     if(appID == 7){}
     if(appID == 8){}
     if(appID == 9){}
@@ -899,11 +786,11 @@ void runApp(uint8_t appID){
             sleepFunction();
             drawTopCanvas();
             drawBottomCanvas();
-            canvas_main.clear(TFT_WHITE);
-            canvas_main.fillSprite(WHITE); //Clears main display
+            canvas_main.clear(bg_color_rgb565);
+            canvas_main.fillSprite(bg_color_rgb565); //Clears main display
             canvas_main.setTextSize(1);
-            canvas_main.setTextColor(BLACK);
-            canvas_main.setColor(BLACK);
+            canvas_main.setTextColor(tx_color_rgb565);
+            canvas_main.setColor(tx_color_rgb565);
             canvas_main.setTextDatum(top_left);
             canvas_main.setCursor(1, (((PADDING + 1) * line) + 5) + 1);
             canvas_main.println("From:             To:               Ch:");
@@ -971,10 +858,10 @@ void runApp(uint8_t appID){
             sleepFunction();
             drawTopCanvas();
             drawBottomCanvas();
-            canvas_main.clear(TFT_WHITE);
+            canvas_main.clear(bg_color_rgb565);
             canvas_main.setTextSize(1);
-            canvas_main.setTextColor(BLACK);
-            //canvas_main.setColor(BLACK);
+            canvas_main.setTextColor(tx_color_rgb565);
+            //canvas_main.setColor(tx_color_rgb565);
             canvas_main.setTextDatum(top_left);
             canvas_main.setCursor(1, (((PADDING + 1) * line) + 5) + 1);
             canvas_main.println("EAPOL sniffer ver.1.0 by Devsur.");
@@ -1203,7 +1090,7 @@ void runApp(uint8_t appID){
       drawInfoBox("M5Gothi", "v" + String(CURRENT_VERSION) + " by Devsur11  ", "www.github.com/Devsur11 ", true, false);
     }
     if(appID == 46){
-      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.fillScreen(tx_color_rgb565);
       esp_deep_sleep_start(); 
       }
     if(appID == 47){
@@ -1242,9 +1129,97 @@ void runApp(uint8_t appID){
         return;
       }
     }
+    if(appID == 49){
+      String options[] = {"Enable", "Disable", "Back"};
+      int choice = drawMultiChoice("Skip EAPOL check", options, 3, 6, 0);
+      if (choice == 0) {
+        skip_eapol_check = false;
+        if (saveSettings()) {
+          drawInfoBox("Success", "EAPOL check enabled", "", true, false);
+          return;
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else if (choice == 1) {
+        skip_eapol_check = true;
+        if (saveSettings()) {
+          drawInfoBox("Success", "EAPOL check disabled", "", true, false);
+          return;
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else {
+        return;
+      }
+    }
+    if(appID == 50){
+      String themeOptions[] = {"White mode", "Dark mode", "Custom", "Back"};
+      int themeChoice = drawMultiChoice("Theme", themeOptions, 4, 6, 0);
+
+      if (themeChoice == 0) {
+        bg_color = "#FFFFFFFF";
+        tx_color = "#000000";
+        if (saveSettings()) {
+          drawInfoBox("Theme", "White mode applied", "Restarting...", false, false);
+          delay(1000);
+          ESP.restart();
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else if (themeChoice == 1) {
+        bg_color = "#000000";
+        tx_color = "#FFFFFFFF";
+        if (saveSettings()) {
+          drawInfoBox("Theme", "Dark mode applied", "Restarting...", false, false);
+          delay(1000);
+          ESP.restart();
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else if (themeChoice == 2) {
+        delay(150);
+        drawInfoBox("Custom Theme", "Set background color with picker", "Make sure to see text!", false, false);
+        delay(5000);
+        String customBg = colorPickerUI(false, "#000000ff");
+        if (customBg == "exited") return;
+        delay(150);
+        drawInfoBox("Custom Theme", "Set text color with picker", "Make sure to see text!", false, false);
+        delay(5000);
+        String customTx = colorPickerUI(true, customBg);
+        if (customTx == "exited") return;
+        bg_color = customBg;
+        tx_color = customTx;
+        if (saveSettings()) {
+          drawInfoBox("Theme", "Custom theme applied", "Restarting...", false, false);
+          delay(1000);
+          ESP.restart();
+        } else {
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+        }
+      } else {
+        return;
+      }
+    }
+    if(appID == 51){
+      bool confirm = drawQuestionBox("Factory Reset", "Delete config and restart?", "", "Press 'y' to confirm, 'n' to cancel");
+      if (!confirm) {
+        drawInfoBox("Aborted", "Factory reset cancelled", "", true, false);
+        return;
+      }
+      drawInfoBox("Factory Reset", "Deleting config...", "", false, false);
+      if (SD.exists(NEW_CONFIG_FILE)) {
+        SD.remove(NEW_CONFIG_FILE);
+        drawInfoBox("Success", "Config deleted", "Restarting...", false, false);
+        delay(1000);
+        ESP.restart();
+      } else {
+        drawInfoBox("Error", "Config file not found", "Nothing to delete", true, false);
+      }
+    }
+    return;
   }
-  return;
 }
+
 
 void drawMenu() {
   if (isNextPressed()) {
@@ -1265,35 +1240,7 @@ void drawMenu() {
   }
 
   if(isOkPressed()){
-    if(menuID == 1){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(main_menu[menu_current_opt].command);
-    }
-    else if(menuID == 2){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(wifi_menu[menu_current_opt].command);
-    }
-    #ifdef USE_EXPERIMLENLAL_APPS
-    else if(menuID == 3){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(bluetooth_menu[menu_current_opt].command);
-    }
-    else if(menuID == 4){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(IR_menu[menu_current_opt].command);
-    }
-    #endif
-    else if(menuID == 5){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(pwngotchi_menu[menu_current_opt].command);
-    }
-    else if(menuID == 6){
-      //logMessage(main_menu[menu_current_opt].command); - for debugging purposses
-      runApp(settings_menu[menu_current_opt].command);
-    }
-    else{
-      return;
-    }
+    return;
   }
   if(!singlePage){
     if(menu_current_opt < 5 && menu_current_page != 1){
@@ -1316,9 +1263,9 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
   while (true){
     drawTopCanvas();
     drawBottomCanvas();
-    canvas_main.clear(TFT_WHITE);
+    canvas_main.clear(bg_color_rgb565);
     canvas_main.setTextSize(3);
-    canvas_main.setTextColor(BLACK);
+    canvas_main.setTextColor(tx_color_rgb565);
     canvas_main.setTextDatum(middle_center);
     canvas_main.drawString(tittle, canvas_center_x, canvas_h / 4);
     canvas_main.setTextSize(1);
@@ -1353,9 +1300,9 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
       temp --;
       delay(100);
     }
-    canvas_main.clear(TFT_WHITE);
+    canvas_main.clear(bg_color_rgb565);
     canvas_main.setTextSize(3);
-    canvas_main.setTextColor(BLACK);
+    canvas_main.setTextColor(tx_color_rgb565);
     canvas_main.setTextDatum(middle_center);
     canvas_main.drawString(tittle, canvas_center_x, canvas_h / 4);
     canvas_main.setTextSize(1);
@@ -1386,9 +1333,9 @@ bool drawQuestionBox(String tittle, String info, String info2, String label) {
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
-    canvas_main.clear(TFT_WHITE);
+    canvas_main.clear(bg_color_rgb565);
     canvas_main.setTextSize(3);
-    canvas_main.setColor(BLACK);
+    canvas_main.setColor(tx_color_rgb565);
     canvas_main.setTextDatum(middle_center);
     canvas_main.drawString(tittle, canvas_center_x, canvas_h / 4);
     canvas_main.setTextSize(1.5);
@@ -1441,11 +1388,11 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     sleepFunction();
 
-    canvas_main.clear(TFT_WHITE);
-    canvas_main.fillSprite(WHITE); //Clears main display
+    canvas_main.clear(bg_color_rgb565);
+    canvas_main.fillSprite(bg_color_rgb565); //Clears main display
     canvas_main.setTextSize(1.5);
-    canvas_main.setTextColor(BLACK);
-    canvas_main.setColor(BLACK);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.setColor(tx_color_rgb565);
     canvas_main.setTextDatum(top_left);
     canvas_main.setCursor(1, PADDING + 1);
     canvas_main.println(tittle);
@@ -1578,10 +1525,10 @@ void drawList(String toDraw[], uint8_t manu_size){
   menu_len = manu_size;
 
   singlePage = false;
-  canvas_main.fillSprite(WHITE); // Clears main display
+  canvas_main.fillSprite(bg_color_rgb565); // Clears main display
   canvas_main.setTextSize(2);
-  canvas_main.setTextColor(BLACK);
-  canvas_main.setColor(BLACK);
+  canvas_main.setTextColor(tx_color_rgb565);
+  canvas_main.setColor(tx_color_rgb565);
   canvas_main.setTextDatum(top_left);
   char display_str[200] = "";
 
@@ -1652,6 +1599,117 @@ void drawList(String toDraw[], uint8_t manu_size){
   }
 }
 
+void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
+  menuID = menuIDPriv;
+  menu_len = menu_size;
+
+  singlePage = false;
+  canvas_main.fillSprite(bg_color_rgb565); // Clears main display
+  canvas_main.setTextSize(2);
+  canvas_main.setTextColor(tx_color_rgb565);
+  canvas_main.setColor(tx_color_rgb565);
+  canvas_main.setTextDatum(top_left);
+  char display_str[200] = "";
+
+  int maxHeight = canvas_main.height() - 10; // leave some margin
+  int maxWidth = canvas_main.width();   // leave some margin
+  int lineHeight = 18; // Adjust as needed
+  int y = PADDING;
+
+  // Calculate which item to start from, so that the selected item is visible
+  int totalLines = 0;
+  int selectedLine = 0;
+  for (uint8_t i = 0; i < menu_len; i++) {
+    String prefix = (menu_current_opt == i) ? ">" : " ";
+    String item = prefix + toDraw[i].name;
+    int itemLen = item.length();
+    int usedLines = 0;
+    int start = 0;
+    while (start < itemLen) {
+      int len = 1;
+      while (start + len <= itemLen && canvas_main.textWidth(item.substring(start, start + len)) < maxWidth) {
+        len++;
+      }
+      len--;
+      start += len;
+      usedLines++;
+    }
+    if (i < menu_current_opt) {
+      selectedLine += usedLines;
+    }
+    totalLines += usedLines;
+  }
+
+  // If the selected item is out of view, scroll so it's visible
+  int linesPerPage = maxHeight / lineHeight;
+  int firstVisibleLine = 0;
+  if (selectedLine + 1 > linesPerPage) {
+    firstVisibleLine = selectedLine + 1 - linesPerPage;
+  }
+
+  int currentLine = 0;
+  for (uint8_t i = 0; i < menu_len; i++) {
+    String prefix = (menu_current_opt == i) ? ">" : " ";
+    String item = prefix + toDraw[i].name;
+    int itemLen = item.length();
+    int start = 0;
+    while (start < itemLen) {
+      int len = 1;
+      while (start + len <= itemLen && canvas_main.textWidth(item.substring(start, start + len)) < maxWidth) {
+        len++;
+      }
+      len--;
+      if (currentLine >= firstVisibleLine && (currentLine - firstVisibleLine) * lineHeight + y < maxHeight) {
+        String lineStr = item.substring(start, start + len);
+        canvas_main.drawString(lineStr, 0, y + (currentLine - firstVisibleLine) * lineHeight);
+      }
+      start += len;
+      currentLine++;
+      if ((currentLine - firstVisibleLine) * lineHeight + y >= maxHeight) {
+        break;
+      }
+    }
+    if ((currentLine - firstVisibleLine) * lineHeight + y >= maxHeight) {
+      break;
+    }
+  }
+
+  // Handle input and app execution
+  M5.update();
+  M5Cardputer.update();
+  Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+  keyboard_changed = M5Cardputer.Keyboard.isChange();
+  if(keyboard_changed){Sound(10000, 100, sound);}
+  sleepFunction();
+
+  if (isOkPressed()) {
+    runApp(toDraw[menu_current_opt].command);
+    delay(150); // Debounce delay
+    return;
+  }
+
+  // Faster key repeat: handle multiple presses in one frame
+  int nextCount = 0, prevCount = 0;
+  for (auto i : status.word) {
+    if (i == '.') {
+      nextCount++;
+      delay(100); // Small delay to avoid too fast increments
+    }
+    if (i == ';') {
+      prevCount++;
+      delay(100); // Small delay to avoid too fast increments
+    }
+    if (i == '`') return;
+  }
+
+  // Move selection by number of keypresses detected
+  if (nextCount > 0) {
+    menu_current_opt = (menu_current_opt + nextCount) % menu_len;
+  }
+  if (prevCount > 0) {
+    menu_current_opt = (menu_current_opt + menu_len - prevCount) % menu_len;
+  }
+}
 
 void logVictim(String login, String pass){
   loginCaptured = login;
@@ -1664,10 +1722,10 @@ void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
-    canvas_main.fillSprite(WHITE);
+    canvas_main.fillSprite(bg_color_rgb565);
     canvas_main.setTextSize(2);
-    canvas_main.setTextColor(BLACK);
-    canvas_main.setColor(BLACK);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.setColor(tx_color_rgb565);
     canvas_main.setTextDatum(middle_center);
     canvas_main.drawString(wifiChoice, display_w/2, 25);
     canvas_main.setTextSize(1.5);
@@ -1717,7 +1775,7 @@ void sleepFunction(){
     if(sleep_mode == false){
       delay(250);
       M5.Lcd.setBrightness(0);
-      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.fillScreen(tx_color_rgb565);
       sleep_mode = true;
       return;
     }
@@ -1793,6 +1851,105 @@ void editWhitelist(){
       }
     }
   }
+}
+
+String colorPickerUI(bool pickingText, String bg_color_toset) {
+  int r = 0, g = 0, b = 0;
+  int selected = 0; // 0=R, 1=G, 2=B
+  bool done = false;
+  String result = "";
+
+  // Adjusted sizes for better fit
+  int box_w = 40, box_h = 30;
+  int box_y = canvas_h / 2 - box_h / 2 - 10;
+  int box_x[3] = {canvas_center_x - box_w - 25, canvas_center_x, canvas_center_x + box_w + 25};
+
+  int preview_w = 70, preview_h = 25;
+  int preview_x = canvas_center_x;
+  int preview_y = box_y + box_h + 20;
+
+  while (!done) {
+    canvas_main.fillSprite(bg_color_rgb565);
+    canvas_main.setTextSize(2);
+    canvas_main.setTextDatum(middle_center);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.drawString("Select color", canvas_center_x, canvas_h / 6);
+
+    // Draw color boxes
+    for (int i = 0; i < 3; i++) {
+      uint16_t border_color = (selected == i) ? tx_color_rgb565 : bg_color_rgb565;
+      canvas_main.drawRect(box_x[i] - box_w/2, box_y, box_w, box_h, border_color);
+      canvas_main.setTextSize(2);
+      canvas_main.setTextColor(tx_color_rgb565);
+      int val = (i == 0) ? r : (i == 1) ? g : b;
+      canvas_main.drawString(String(val), box_x[i], box_y + box_h/2 - 8 + 10);
+      canvas_main.setTextSize(1);
+      String label = (i == 0) ? "red" : (i == 1) ? "green" : "blue";
+      canvas_main.drawString(label, box_x[i], box_y + box_h + 10);
+    }
+
+    // Draw preview/confirm box
+    uint16_t preview_color = RGBToRGB565(r, g, b);
+    if(pickingText){
+      canvas_main.drawRect(preview_x - preview_w/2, preview_y, preview_w, preview_h * 2/3, hexToRGB565(bg_color_toset));
+      canvas_main.fillRect(preview_x - preview_w/2, preview_y, preview_w, preview_h * 2/3, hexToRGB565(bg_color_toset));
+    }
+    else{
+      canvas_main.drawRect(preview_x - preview_w/2, preview_y, preview_w, preview_h * 2/3, preview_color);
+      canvas_main.fillRect(preview_x - preview_w/2, preview_y, preview_w, preview_h * 2/3, preview_color);
+    }
+    
+    canvas_main.setTextSize(1);
+    canvas_main.setTextColor(tx_color_rgb565);
+    if(pickingText) canvas_main.setTextColor(preview_color);
+    canvas_main.drawString("Confirm", preview_x, preview_y + preview_h/2 - 6);
+    canvas_main.drawString("Up/Down: value Left/Right: color OK set", preview_x, preview_y + preview_h/2 + 12);
+
+    pushAll();
+
+    // Handle input
+    M5.update();
+    M5Cardputer.update();
+    Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+    if(keyboard_changed){Sound(10000, 100, sound);}  
+
+    for (auto k : status.word) {
+      if (k == '/') { // right
+        selected = (selected + 1) % 3;
+      }
+      if (k == ',') { // left
+        selected = (selected + 2) % 3;
+      }
+      if (k == ';') { // up
+        if (selected == 0 && r < 255) r++;
+        if (selected == 1 && g < 255) g++;
+        if (selected == 2 && b < 255) b++;
+      }
+      if (k == '.') { // down
+        if (selected == 0 && r > 0) r--;
+        if (selected == 1 && g > 0) g--;
+        if (selected == 2 && b > 0) b--;
+      }
+    }
+    // Exit if fn+` pressed
+    if (status.fn) {
+      for (auto k : status.word) {
+        if (k == '`') {
+          return "exited";
+        }
+      }
+    }
+    if (status.enter) {
+      char hexStr[9];
+      sprintf(hexStr, "#%02X%02X%02XFF", r, g, b);
+      result = String(hexStr);
+      done = true;
+      break;
+    }
+    delay(80);
+  }
+  return result;
 }
 
 #endif

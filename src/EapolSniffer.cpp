@@ -209,14 +209,16 @@ void SnifferLoop() {
         if (isNewHandshake()) { 
             logMessage("New handshake sequence detected.");
             // at least Msg1 + Msg2 captured before saving
-            if (eapolCount >= 10){ //msg1 + msg2 + msg3 + msg4 = 10
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
-                if(eapolCount >= 10){
-                    eapolCount = 0; // reset for next sequence
-                    logMessage("Incomplete handshake sequence, skipping...");
-                    free(packet->data);
-                    free(packet);
-                    return;
+            if (!skip_eapol_check){
+                if (eapolCount >= 10){ //msg1 + msg2 + msg3 + msg4 = 10
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    if(eapolCount >= 10){
+                        eapolCount = 0; // reset for next sequence
+                        logMessage("Incomplete handshake sequence, skipping...");
+                        free(packet->data);
+                        free(packet);
+                        return;
+                    }
                 }
             }
             logMessage("Complete handshake sequence captured. Proceeding to save.");
@@ -346,7 +348,7 @@ uint8_t getEAPOLOrder(uint8_t *buf) {
     if (mic && ack && install) return 3; // Message 3
     if (mic && !ack && !install && secure) return 4; // Message 4
 
-    return 100; // Unknown
+    return 0; // Unknown
 }
 
 

@@ -36,6 +36,7 @@ void setup() {
     while(true){delay(10);}
     #endif
   }
+  initColorSettings();
   M5.Display.setBrightness(brightness);
   wakeUp();
   #ifdef LITE_VERSION
