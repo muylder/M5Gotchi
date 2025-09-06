@@ -37,3 +37,6 @@ extern String whitelist;
 extern bool pwnagothiMode;
 extern uint8_t sessionCaptures;
 extern bool pwnagothiModeEnabled;
+extern String bg_color;
+extern String tx_color;
+extern bool skip_eapol_check;

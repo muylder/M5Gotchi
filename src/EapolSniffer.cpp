@@ -57,6 +57,8 @@ bool beaconDetected = false;
 const uint8_t* beaconFrame;
 uint16_t beaconFrameLen = 0;
 std::map<String, APFileContext> apFiles;
+bool targetAPSet = false;
+uint8_t targetBSSID[6] = {0};
 
 void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (type != WIFI_PKT_MGMT && type != WIFI_PKT_DATA && type != WIFI_PKT_CTRL) {
@@ -76,6 +78,14 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 
     // ---- Detect beacon ----
     if (ftype == 0 && fsubtype == 8) { // mgmt + beacon
+        if (targetAPSet) {
+            // BSSID in beacon frame is addr3 at offset 16..21
+            const uint8_t *bssid = &payload[16];
+            if (memcmp(bssid, targetBSSID, 6) != 0) {
+                logMessage("Ignoring beacon from non-target AP.");
+                return; // not the targeted AP
+            }
+        }
         if (!beaconDetected) {
             beaconDetected = true;
             logMessage("Beacon frame detected.");
@@ -141,6 +151,15 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     }
 }
 
+void setTargetAP(uint8_t* bssid) {
+    memcpy(targetBSSID, bssid, 6);
+    targetAPSet = true;
+}
+
+void clearTargetAP() {
+    memset(targetBSSID, 0, 6);
+    targetAPSet = false;
+}
 
 bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging purposses*/) {
   autoChannelSwitch = (userChannel == 0);

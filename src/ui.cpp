@@ -198,9 +198,31 @@ bool apMode;
 String loginCaptured = "";
 String passCaptured = "";
 bool cloned;
+uint16_t bg_color_rgb565;
+uint16_t tx_color_rgb565;
+
+uint16_t RGBToRGB565(uint8_t r, uint8_t g, uint8_t b) {
+  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
+
+uint16_t hexToRGB565(String hex) {
+  if (hex.startsWith("#")) {
+    hex = hex.substring(1);
+  }
+  if (hex.length() != 8) {
+    logMessage("Invalid hex color format. Expected RRGGBBAA.");
+    return TFT_BLACK; // Default to black if the format is incorrect
+  }
+  uint32_t color = strtoul(hex.c_str(), nullptr, 16);
+  uint8_t r = (color >> 24) & 0xFF;
+  uint8_t g = (color >> 16) & 0xFF;
+  uint8_t b = (color >> 8) & 0xFF;
+  return RGBToRGB565(r, g, b);
+}
 
 void initUi() {
-  void initPwngrid();
+  bg_color_rgb565 = hexToRGB565(bg_color);
+  tx_color_rgb565 = hexToRGB565(tx_color);
   M5.Display.setRotation(1);
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(TFT_WHITE);

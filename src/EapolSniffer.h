@@ -17,7 +17,7 @@ struct PacketInfo {
 
 // Function declarations
 void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type);
-bool SnifferBegin(int userChannel, bool skipSDCardCheck = false /*ONLY For debugging purposses*/);;
+bool SnifferBegin(int userChannel, bool skipSDCardCheck = true);
 void SnifferLoop();
 int SnifferGetClientCount();
 void SnifferSwitchChannel();
@@ -29,3 +29,5 @@ bool isNewHandshake();
 bool isEapolFrame(const uint8_t *data, uint16_t len);
 static inline int ieee80211_hdrlen(uint16_t fc);
 uint8_t getEAPOLOrder(uint8_t* buf);
+void setTargetAP(uint8_t* bssid);
+void clearTargetAP();
