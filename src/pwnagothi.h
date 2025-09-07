@@ -9,3 +9,4 @@ void pwnagothiLoop();
 bool pwnagothiBegin();
 void delayWithUI(uint16_t delayTime);
 void removeItemFromWhitelist(String valueToRemove);
+uint8_t getWiFiCheckInt();

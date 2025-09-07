@@ -31,3 +31,4 @@ static inline int ieee80211_hdrlen(uint16_t fc);
 uint8_t getEAPOLOrder(uint8_t* buf);
 void setTargetAP(uint8_t* bssid);
 void clearTargetAP();
+int SnifferPendingPackets();

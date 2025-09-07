@@ -1,3 +1,5 @@
+#include "pwnagothi.h"
+#include "networkKit.h"
 #include "EapolSniffer.h"
 #include <map>
 #include "src.h"
@@ -124,7 +126,8 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 
             logMessage("EAPOL Detected");
             
-            eapolCount += getEAPOLOrder((uint8_t*)payload);
+            eapolCount = eapolCount + getEAPOLOrder((uint8_t*)payload);
+            logMessage("EAPOL count: " + String(eapolCount));
             if (len == 0 || len > MAX_PKT_SIZE) return;
 
             CapturedPacket *p = (CapturedPacket*) malloc(sizeof(CapturedPacket));
@@ -200,19 +203,26 @@ bool SnifferBegin(int userChannel, bool skipSDCardCheck /*ONLY For debugging pur
 
 char apName[18];
 
+uint8_t* savedPackets[10];
+int savedPacketCount = 0;
+
+int SnifferPendingPackets() {
+    return uxQueueMessagesWaiting(packetQueue);
+}
+
 void SnifferLoop() {
     CapturedPacket *packet = NULL;
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
         String apKey = String(apName);
-
+        logMessage("Processing captured packet for AP");
         //logMessage(String(isNewHandshake()) + ", for new file");
         if (isNewHandshake()) { 
             logMessage("New handshake sequence detected.");
             // at least Msg1 + Msg2 captured before saving
             if (!skip_eapol_check){
-                if (eapolCount >= 10){ //msg1 + msg2 + msg3 + msg4 = 10
+                if (!(eapolCount >= 10)){ //msg1 + msg2 + msg3 + msg4 = 10
                     vTaskDelay(3000 / portTICK_PERIOD_MS);
-                    if(eapolCount >= 10){
+                    if(!(eapolCount >= 10)){
                         eapolCount = 0; // reset for next sequence
                         logMessage("Incomplete handshake sequence, skipping...");
                         free(packet->data);
@@ -220,6 +230,9 @@ void SnifferLoop() {
                         return;
                     }
                 }
+            }
+            else{
+                logMessage("Skipping EAPOL check as per settings.");
             }
             logMessage("Complete handshake sequence captured. Proceeding to save.");
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -232,7 +245,7 @@ void SnifferLoop() {
             // Get BSSID from packet (addr3, offset 16..21)
             char bssidStr[18];
             const uint8_t* bssid = packet->data + 16;
-            snprintf(bssidStr, sizeof(bssidStr), "%02X-%02X-%02X-%02X-%02X-%02X",
+            snprintf(bssidStr, sizeof(bssidStr), "%02X_%02X_%02X_%02X_%02X_%02X",
                      bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
 
             char filename[64];
@@ -292,8 +305,28 @@ void SnifferLoop() {
             }
         }
 
-        // ===== add captured packet =====
+        // ===== add captured packet or cash one, if no saveable file is present=====
         if (file) {
+            logMessage("Writing captured packet to file.");
+            // write saved packets first
+            for(uint8_t i = 0; i < savedPacketCount; i++) {
+                if (savedPackets[i]) {
+                    logMessage("Writing cached packet to file.");
+                    pcaprec_hdr_s recHeader;
+                    uint64_t ts = esp_timer_get_time();
+                    recHeader.ts_sec   = ts / 1000000;
+                    recHeader.ts_usec  = ts % 1000000;
+                    recHeader.incl_len = packet->len;
+                    recHeader.orig_len = packet->len;
+                    file.write((uint8_t*)&recHeader, sizeof(recHeader));
+                    file.write(savedPackets[i], packet->len);
+                    file.flush();
+                    free(savedPackets[i]);
+                    savedPackets[i] = nullptr;
+                }
+            }
+            logMessage("Writing current packet to file.");
+            savedPacketCount = 0;
             pcaprec_hdr_s recHeader;
             recHeader.ts_sec   = packet->ts_sec;
             recHeader.ts_usec  = packet->ts_usec;
@@ -303,7 +336,17 @@ void SnifferLoop() {
             file.write(packet->data, packet->len);
             file.flush();
         }
-
+        else{
+            logMessage("File not open, cannot write packet., Cashing packet.");
+            if (savedPacketCount < 10) {
+                savedPackets[savedPacketCount] = (uint8_t *) malloc(packet->len);
+                if (savedPackets[savedPacketCount]) {
+                    memcpy(savedPackets[savedPacketCount], packet->data, packet->len);
+                    savedPacketCount++;
+                }
+            }
+        }
+        logMessage("Packet written.");
         lastHandshakeMillis = millis();
         free(packet->data);
         free(packet);
@@ -419,9 +462,9 @@ String getSSIDFromMac(const uint8_t* mac) {
     logMessage("Searching SSID for MAC: " + String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" +
                String(mac[2], HEX) + ":" + String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX));
     char ssid[18];
-    esp_wifi_set_promiscuous(false);
-    WiFi.mode(WIFI_STA);
-    WiFi.scanNetworks(true);
+    
+    // WiFi.mode(WIFI_STA);
+    // WiFi.scanNetworks(true);
     while(WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
         delay(10);
     }
@@ -442,8 +485,7 @@ String getSSIDFromMac(const uint8_t* mac) {
     }
     logMessage("SSID not found for MAC: " + String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" +
                String(mac[2], HEX) + ":" + String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX));
-    WiFi.mode(WIFI_STA);
-    esp_wifi_set_promiscuous(true);
+    
     return String(ssid);
 }
 

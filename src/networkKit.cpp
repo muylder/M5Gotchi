@@ -207,7 +207,7 @@ bool send_deauth_packets(String &client_mac_str, int count) {
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, deauth_packet, sizeof(deauth_packet), false);
   if (result == ESP_OK) {
     logMessage("Packet sent successfully.");
-    delay(100);
+    delay(150);
   } else {
     logMessage("Error sending packet.");
   }

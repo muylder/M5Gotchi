@@ -286,6 +286,9 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
+    if(pwnagothiMode){
+      return;
+    }
     // If menu is open, return to main menu
     // If not, toggle menu
     if (menuID == true) {
@@ -914,9 +917,14 @@ void runApp(uint8_t appID){
         bool answear = drawQuestionBox("CONFIRMATION", "Operate only if you ", "have premision!");
         if(answear){
           drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
-          pwnagothiBegin();
-          drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
-          pwnagothiMode = true;
+          if(pwnagothiBegin()){
+            drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
+            pwnagothiMode = true;
+          }
+          else{
+            drawInfoBox("ERROR", "Pwnagothi init failed!", "", true, true);
+            pwnagothiMode = false;
+          }
           return;
         }
       }
@@ -1602,6 +1610,8 @@ void drawList(String toDraw[], uint8_t manu_size){
 void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
   menuID = menuIDPriv;
   menu_len = menu_size;
+  M5.update();
+  M5Cardputer.update();
 
   singlePage = false;
   canvas_main.fillSprite(bg_color_rgb565); // Clears main display
@@ -1673,33 +1683,31 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
       break;
     }
   }
-
-  // Handle input and app execution
-  M5.update();
-  M5Cardputer.update();
-  Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}
   sleepFunction();
 
-  if (isOkPressed()) {
+  // Handle input and app execution
+  M5.update();
+  M5Cardputer.update();
+  auto status = M5Cardputer.Keyboard.keysState();
+  
+  int nextCount = 0, prevCount = 0;
+  if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    delay(150); // Debounce delay
     runApp(toDraw[menu_current_opt].command);
+  }
+  if (M5Cardputer.Keyboard.isKeyPressed('`')){
     delay(150); // Debounce delay
     return;
   }
-
-  // Faster key repeat: handle multiple presses in one frame
-  int nextCount = 0, prevCount = 0;
-  for (auto i : status.word) {
-    if (i == '.') {
-      nextCount++;
-      delay(100); // Small delay to avoid too fast increments
-    }
-    if (i == ';') {
-      prevCount++;
-      delay(100); // Small delay to avoid too fast increments
-    }
-    if (i == '`') return;
+  if (M5Cardputer.Keyboard.isKeyPressed('.')){
+    delay(100); // Small delay to avoid too fast increments
+    nextCount++;
+  }
+  if (M5Cardputer.Keyboard.isKeyPressed(';')){
+    delay(100); // Small delay to avoid too fast increments
+    prevCount++;
   }
 
   // Move selection by number of keypresses detected

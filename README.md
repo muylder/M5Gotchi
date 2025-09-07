@@ -2,7 +2,7 @@
 
 # M5Gothi
 
-M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface, so you can finally go touch some grass and hack at the same time. Inspied by the original Pwnagothi project. It doesn't have AI, but at least its working like it should. This project took me alone around 1.5 years to complete so I am proud of what it turned out to be.
+M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer platform, providing both automatic and manual Wi-Fi control through an integrated keyboard interface, so you can finally go touch some grass and hack at the same time. Inspied by the original Pwnagothi project. It doesn't have AI, but at least its working like it should.
 
 ---
 
@@ -15,7 +15,7 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 
 ---
 
-# Main screen data:
+# Main screen data
 
 <p align=center>
   <img src="https://github.com/user-attachments/assets/63eb92f1-4194-431e-8f74-3df0472611a7" width="300">
@@ -23,7 +23,7 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 
 ---
 
-##  Features
+## Features
 
 - Full Pwnagothi functionality adapted for M5Cardputer
 - Manual Wi-Fi control via integrated keyboard UI making it first fully UI-controlled pwnagotchi
@@ -43,13 +43,14 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 
 - Configuration file: config.conf will be created at first boot and then used to store informations. **Don't mess with it at your own - use device UI to change these values! (Or if you are using lite mode - be carefull)**
 - Captured handshakes will be stored inside a folder called:
+
   ```
   /handshake
   ```
   
 ---
 
-##  Supported Devices
+## Supported Devices
 
 | Device         | Status         | Notes                          |
 |----------------|----------------|--------------------------------|
@@ -65,7 +66,7 @@ M5Gothi brings the powerful Pwnagothi functions and interface to the M5Cardputer
 
 ---
 
-##  TODO / Planned Features
+## TODO / Planned Features
 
 | Feature                 | Status     |
 |-------------------------|------------|
@@ -107,12 +108,14 @@ You can install PlatformIO using either:
 ## Build and Flash Instructions
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/Devsur11/M5gotchi/
    cd M5gothi
    ```
 
 2. Build and upload via PlatformIO:
+
    ```bash
    pio run
    pio run --target upload
@@ -148,7 +151,7 @@ You can install PlatformIO using either:
 
 ---
 
-##  Update Methods
+## Update Methods
 
 | Method        | Status    | Description                                     |
 |---------------|-----------|-------------------------------------------------|
@@ -176,9 +179,9 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 # CREDIT
 
-https://github.com/evilsocket/pwnagotchi - For the original pwnagothi project
+<https://github.com/evilsocket/pwnagotchi> - For the original pwnagothi project
 <br>
-https://github.com/viniciusbo/m5-palnagotchi - For inspiration and pwngrid support for cardputer
+<https://github.com/viniciusbo/m5-palnagotchi> - For inspiration and pwngrid support for cardputer
 
 ---
 
@@ -193,7 +196,7 @@ To help out, fork this repo, before opening a PR run pre_commit.sh (don't worry 
 
 Join our Discord community for support, discussion, and sneak peeks at upcoming features.
 
-https://discord.gg/2TZFcndkhB
+<https://discord.gg/2TZFcndkhB>
 
 ---
 
