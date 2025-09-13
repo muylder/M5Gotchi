@@ -45,3 +45,4 @@ uint16_t hexToRGB565(String hex);
 String colorPickerUI(bool pickingText, String bg_color_toset);
 void initColorSettings();
 void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size);
+int brightnessPicker();

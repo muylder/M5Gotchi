@@ -240,8 +240,6 @@ void initUi() {
   canvas_center_x = display_w / 2;
   canvas_top_h = display_h * .1;
   canvas_bot_h = display_h * .1;
-  canvas_peers_menu_h = display_h * .8;
-  canvas_peers_menu_w = display_w * .8;
 
   canvas_top.createSprite(display_w, canvas_top_h);
   canvas_bot.createSprite(display_w, canvas_bot_h);
@@ -251,6 +249,7 @@ void initUi() {
   // bar_right3.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
   // bar_right4.createSprite((display_w * 0.02) / 2, (canvas_h - 6) / 4 );
   logMessage("UI initialized");
+  
 }
 
 uint8_t returnBrightness(){return currentBrightness;}
@@ -980,36 +979,11 @@ void runApp(uint8_t appID){
         drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
     }
     if(appID == 41){
-      String value = userInput("Brightness", "Change Brightness to (max 255):", 3);
-      if(value == ""){
-        drawInfoBox("Error", "Invalid Value", value , true, false);
+      brightnessPicker();
+      if(saveSettings()){
         return;
       }
-      //char setTo = value.toInt();
-      uint8_t digit2;
-      uint8_t digit3;
-      uint16_t name;
-      uint8_t digit1 = value.charAt(0) - 48;
-      name =  digit1;
-      if(value.charAt(1) >= 48){
-        uint8_t digit2 = value.charAt(1) - 48;
-        name = (digit1 * 10) + digit2;
-      }
-      if(value.charAt(2) >= 48){
-        uint8_t digit3 = value.charAt(2) - 48;
-        name = (digit1 * 100) + (digit2 * 10) + digit3;
-      }
-      
-      if(name<=255 && name!=0){
-        logMessage(String(name));
-        M5.Lcd.setBrightness(int(name));
-        brightness = int(name);
-        if(saveSettings()){
-          return;
-        }
-        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
-      }
-      else{drawInfoBox("Error", "Invalid Value", String(name) , true, false);}
+      else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
     }
     if(appID == 42){
       String selection[] = {"Off", "On"};
@@ -1958,6 +1932,64 @@ String colorPickerUI(bool pickingText, String bg_color_toset) {
     delay(80);
   }
   return result;
+}
+
+int brightnessPicker(){
+  brightness = M5.Display.getBrightness();
+  uint8_t rect_x = 10;
+  uint8_t rect_y = (canvas_h / 4) + 30; 
+  uint8_t rect_w = (canvas_center_x*2) - 20; 
+  uint8_t rect_h = 30;
+  while(true){
+    drawTopCanvas();
+    drawBottomCanvas();
+    canvas_main.fillScreen(bg_color_rgb565);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.clear(bg_color_rgb565);
+    canvas_main.setTextSize(3);
+    canvas_main.setTextDatum(middle_center);
+    canvas_main.drawString("Brightness:", canvas_center_x, canvas_h / 4);
+    canvas_main.drawRect(rect_x, rect_y, rect_w , rect_h);
+    float fillProcent = float(M5.Display.getBrightness()) / float(255);
+    logMessage(String(fillProcent) + "% brightess detected, current brightness: "+ String(M5.Display.getBrightness()));
+    canvas_main.setColor(tx_color_rgb565);
+    canvas_main.fillRect(rect_x, rect_y, rect_w*fillProcent, rect_h);
+    canvas_main.setColor(bg_color_rgb565);
+    pushAll();
+    M5.update();
+    M5Cardputer.update();
+    Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+    if(keyboard_changed){Sound(10000, 100, sound);}  
+
+    for (auto k : status.word) {
+      if (k == '/' || k == ';') { // right
+        if(brightness == 255){
+          brightness--;
+        }
+        brightness++;
+      }
+      if (k == ',' || k == '.') { // left
+        if(brightness == 1){
+          brightness++;
+        }
+        brightness--;
+      }
+    }
+    if (status.fn) {
+      for (auto k : status.word) {
+        if (k == '`' ) {
+          delay(100);
+          return brightness;
+        }
+      }
+    }
+    if (status.enter) {
+      delay(100);
+      return brightness;
+    }
+    M5.Display.setBrightness(brightness);
+  }
 }
 
 #endif
