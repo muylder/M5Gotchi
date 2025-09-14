@@ -19,6 +19,7 @@
 #include "networkKit.h"
 #include "src.h"
 #include "logger.h"
+#include "moodLoader.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -117,9 +118,11 @@ String broken_ssids[]{
 };
 #endif
 
+// menuID 1
 menu main_menu[] = {
     {"Manual mode", 1},
     {"Auto", 4},
+    {"WPA-SEC companion", 55},
     #ifdef USE_EXPERIMENTAL_APPS
     {"Bluetooth", 2},
     {"IR", 3},
@@ -128,6 +131,7 @@ menu main_menu[] = {
     {"Config", 6}
 };
 
+//menuID 2
 menu wifi_menu[] = {
     {"Turn on/off", 47},
     {"Select Networks", 20},
@@ -137,6 +141,8 @@ menu wifi_menu[] = {
     {"Sniffing", 24}
 };
 #ifdef USE_EXPERIMENTAL_APPS
+
+//menuID 3
 menu bluetooth_menu[] = {
     {"BLE Spam", 25},
     {"Connect to phone", 26},
@@ -146,6 +152,7 @@ menu bluetooth_menu[] = {
     {"Turn off", 30}
 };
 
+//menuID 4
 menu IR_menu[] = {
     {"Saved remotes", 31},
     {"Send IR", 32},
@@ -155,6 +162,14 @@ menu IR_menu[] = {
 };
 #endif
 
+//menuID 7
+menu wpasec_menu[] = {
+  {"Upload new hashes", 52},
+  {"Check uploads", 53},
+  {"Setup API key", 54}
+};
+
+//menuID 5
 menu pwngotchi_menu[] = {
     {"Turn on", 36},
     {"Turn off", 37},
@@ -162,6 +177,7 @@ menu pwngotchi_menu[] = {
     {"Handshakes", 39}
 };
 
+//menuID 6
 menu settings_menu[] = {
   {"Pwnagothi on boot", 48},
   {"Change Hostname", 40},
@@ -173,9 +189,9 @@ menu settings_menu[] = {
   {"Update system", 44},
   {"Factory reset", 51},
   {"About", 45},
-  {"Power off", 46}
+  {"Power off", 46},
+  {"Reboot", 56}
 };
-
 
 bool appRunning;
 bool userInputVar;
@@ -288,8 +304,6 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
     if(pwnagothiMode){
       return;
     }
-    // If menu is open, return to main menu
-    // If not, toggle menu
     if (menuID == true) {
       menu_current_opt = 0;
       menu_current_page = 1;
@@ -313,67 +327,31 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
     menu_current_pages = 2;
     menu_len = 6;
     #ifdef USE_EXPERIMENTAL_APPS
-    drawMenuList(main_menu, 1, 6);
+    drawMenuList(main_menu, 1, 7);
     #else
-    drawMenuList(main_menu, 1, 3);
+    drawMenuList(main_menu, 1, 4);
     #endif
-    //drawMenu();
   } 
   else if (menuID == 2){
-    if(!pwnagothiMode)
-    {
-      drawMenuList( wifi_menu , 2, 6);
-      //drawMenu();
-    }
-    else{
-      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
-      delay(5000);
-      menuID = 0;
-    }
+    drawMenuList( wifi_menu , 2, 6);
   }
   #ifdef USE_EXPERIMENTAL_APPS
   else if (menuID == 3){
-    if(!pwnagothiMode)
-    {
-      drawMenuList( bluetooth_menu , 3, 6);
-      drawMenu();
-    }
-    else{
-      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
-      delay(5000);
-      menuID = 0;
-    }
+    drawMenuList( bluetooth_menu , 3, 6);
   }
   else if (menuID == 4){
-    if(!pwnagothiMode)
-    {
-      drawMenuList( IR_menu , 4, 5);
-      drawMenu();
-    }
-    else{
-      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
-      delay(5000);
-      menuID = 0;
-    }
+    drawMenuList( IR_menu , 4, 5);
   }
   #endif
   else if (menuID == 5){
     drawMenuList( pwngotchi_menu , 5, 4);
-    //drawMenu();
-    
   }
   else if (menuID == 6){
-    if(!pwnagothiMode)
-    {
-      drawMenuList( settings_menu , 6, 11);
-      //drawMenu();
-    }
-    else{
-      drawInfoBox("INFO", "Pwnagothi auto mode enabled", "Turn it off to operate.", false, false);
-      delay(5000);
-      menuID = 0;
-    }
+    drawMenuList( settings_menu , 6, 12);
   }  
+  else if (menuID == 7){
+    drawMenuList(wpasec_menu, 7, 3);
+  }
   else if (menuID == 0)
   {
     drawMood(mood_face, mood_phrase);
@@ -383,18 +361,12 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   #ifdef LITE_VERSION
     drawMood(mood_face, mood_phrase);
   #endif 
-  //drawRightBar();
 
   M5.Display.startWrite();
   if (show_toolbars) {
     canvas_top.pushSprite(0, 0);
     canvas_bot.pushSprite(0, canvas_top_h + canvas_h);
-    //bar_right1.pushSprite(display_w * 0.98, 2*(canvas_top_h + 3));
   }
-  bar_right.pushSprite(display_w * 0.98, canvas_top_h + 5);
-  bar_right2.pushSprite(display_w * 0.98, ( canvas_top_h + 5 ) + (1 * ((canvas_h - 6)/4)) - 1 );
-  bar_right3.pushSprite(display_w * 0.98, ( canvas_top_h + 5 ) + (2 * ((canvas_h - 6)/4)) - 1 );
-  bar_right4.pushSprite(display_w * 0.98, ( canvas_top_h + 5 ) + (3 * ((canvas_h - 6)/4)) - 1 );
   canvas_main.pushSprite(0, canvas_top_h);
   M5.Display.endWrite();
 }
@@ -464,21 +436,38 @@ void drawBottomCanvas() {
 }
 
 void drawMood(String face, String phrase) {
-  canvas_main.fillSprite(bg_color_rgb565);
-  canvas_main.setTextSize(1.5);
-  canvas_main.setTextDatum(top_left);
-  canvas_main.setCursor(3, 10);
-  canvas_main.println(hostname + ">");
-  canvas_main.setTextSize(4);
-  canvas_main.setCursor(5, 10);
-  canvas_main.setTextColor(tx_color_rgb565);
-  canvas_main.setColor(tx_color_rgb565);
-  //canvas_main.setTextStyle(BOLD);
-  canvas_main.drawString(face, 5 , 30);
-  canvas_main.setTextSize(1.5);
-  canvas_main.setCursor(3, canvas_h - 40);
-  canvas_main.println("> " + phrase);
+    uint16_t bg = bg_color_rgb565;
+    uint16_t fg = tx_color_rgb565;
+    canvas_main.fillSprite(bg);
+    canvas_main.setTextSize(1.5);
+    canvas_main.setTextDatum(top_left);
+    canvas_main.setCursor(3, 10);
+    canvas_main.println(hostname + ">");
+
+
+    if (moods.count(face + ".jpg")) {
+        MoodImage &m = moods[face + ".jpg"];
+        int rowBytes = (m.width+7)/8;
+        for (int y=0; y<m.height; y++) {
+            for (int x=0; x<m.width; x++) {
+                bool px = m.bitmap[y*rowBytes + x/8] & (1 << (7-(x%8)));
+                canvas_main.drawPixel(x, y+25, px ? fg : bg);
+            }
+        }
+    } else {
+        // fallback: display face as text
+        canvas_main.setTextSize(4);
+        canvas_main.setTextColor(fg, bg);
+        canvas_main.drawString(face, 5, 30);
+    }
+
+    // Draw phrase
+    canvas_main.setTextSize(1.5);
+    canvas_main.setTextColor(fg, bg);
+    canvas_main.setCursor(3, canvas_h - 40);
+    canvas_main.println("> " + phrase);
 }
+
 
 void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool isCritical) {
   appRunning = true;
@@ -540,7 +529,7 @@ void runApp(uint8_t appID){
     #endif
     if(appID == 4){drawMenuList(pwngotchi_menu, 5 , 3 );}
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
-    if(appID == 6){drawMenuList(settings_menu ,6  ,11);}
+    if(appID == 6){drawMenuList(settings_menu ,6  ,12);}
     if(appID == 7){}
     if(appID == 8){}
     if(appID == 9){}
@@ -1197,6 +1186,21 @@ void runApp(uint8_t appID){
       } else {
         drawInfoBox("Error", "Config file not found", "Nothing to delete", true, false);
       }
+    }
+    if(appID == 52){
+
+    }    
+    if(appID == 53){
+
+    }
+    if(appID == 54){
+
+    }
+    if(appID == 55){
+      drawMenuList(wpasec_menu, 7, 3);
+    }
+    if(appID == 56){
+      ESP.restart();
     }
     return;
   }

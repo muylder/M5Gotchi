@@ -6,11 +6,6 @@ struct splash {
     String splash;
 };
 
-struct pwnagothiMood {
-  String Face;
-  String spashPart1;
-  String splashPart2;
-};
 
 splash mainFaces[] = {
   {"(v__v)", "Zzzz.... Just debugging my dreams!"},
@@ -65,6 +60,5 @@ void setMood(uint8_t mood, String face, String phrase, bool broken) {
     current_phrase = phrase;
   } else {
     current_phrase = mainFaces[current_mood].splash;
-    //part2 = mainFaces[current_mood].part2;
   }
 }

@@ -4,6 +4,8 @@
 #include "settings.h"
 #include "mood.h"
 #include "pwnagothi.h"
+#include "moodLoader.h"
+#include "Arduino.h"
 #include "githubUpdater.h"
 
 uint8_t state;
@@ -14,7 +16,6 @@ bool firstSoundEnable;
 bool isSoundPlayed = false;
 uint32_t last_mood_switch = 10001;
 uint8_t wakeUpList[] = {0, 1, 2};
-// Pin mapping from the official docs
 
 void initM5() {
   auto cfg = M5.config();
@@ -38,6 +39,7 @@ void setup() {
   }
   initColorSettings();
   M5.Display.setBrightness(brightness);
+  preloadMoods();
   wakeUp();
   #ifdef LITE_VERSION
   #ifndef SKIP_AUTO_UPDATE

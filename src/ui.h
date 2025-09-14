@@ -13,6 +13,9 @@ struct menu {
   int command;
 };
 
+extern uint16_t bg_color_rgb565;
+extern uint16_t tx_color_rgb565;
+
 
 String multiplyChar(char toMultiply, uint8_t literations);
 void trigger(uint8_t trigID);

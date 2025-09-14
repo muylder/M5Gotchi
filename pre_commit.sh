@@ -63,4 +63,7 @@ cat <<EOF > firmware/stick.json
 }
 EOF
 
+bundle-cardputer-lite
+bundle-cardputer-full
+
 echo "✅ Metadata files with full download URLs created"
