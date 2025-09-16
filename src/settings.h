@@ -40,3 +40,4 @@ extern bool pwnagothiModeEnabled;
 extern String bg_color;
 extern String tx_color;
 extern bool skip_eapol_check;
+extern String wpa_sec_api_key;

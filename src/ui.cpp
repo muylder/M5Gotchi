@@ -20,6 +20,7 @@
 #include "src.h"
 #include "logger.h"
 #include "moodLoader.h"
+#include "wpa_sec.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -164,7 +165,7 @@ menu IR_menu[] = {
 
 //menuID 7
 menu wpasec_menu[] = {
-  {"Upload new hashes", 52},
+  {"Sync with server", 52},
   {"Check uploads", 53},
   {"Setup API key", 54}
 };
@@ -1172,7 +1173,7 @@ void runApp(uint8_t appID){
       }
     }
     if(appID == 51){
-      bool confirm = drawQuestionBox("Factory Reset", "Delete config and restart?", "", "Press 'y' to confirm, 'n' to cancel");
+      bool confirm = drawQuestionBox("Factory Reset", "Delete config and WPA-SEC data?", "", "Press 'y' to confirm, 'n' to cancel");
       if (!confirm) {
         drawInfoBox("Aborted", "Factory reset cancelled", "", true, false);
         return;
@@ -1180,6 +1181,8 @@ void runApp(uint8_t appID){
       drawInfoBox("Factory Reset", "Deleting config...", "", false, false);
       if (SD.exists(NEW_CONFIG_FILE)) {
         SD.remove(NEW_CONFIG_FILE);
+        SD.remove("/uploaded.json");
+        SD.remove("/cracked.json");
         drawInfoBox("Success", "Config deleted", "Restarting...", false, false);
         delay(1000);
         ESP.restart();
@@ -1188,13 +1191,107 @@ void runApp(uint8_t appID){
       }
     }
     if(appID == 52){
-
+      if(WiFi.status() == WL_CONNECTED){
+        if(wpa_sec_api_key.equals("")){
+          drawInfoBox("Error", "No API key set", "Set it first!", true, false);
+        }
+        else{
+          drawInfoBox("Syncing", "Syncing data with WPASec", "Please wait...", false, false);
+          processWpaSec(wpa_sec_api_key.c_str());
+          drawInfoBox("Done", "Sync finished", "Press enter to continue", true, false);
+          return;
+        }
+      }
+      else{
+        runApp(43);
+        delay(1000);
+        runApp(52);
+      }
     }    
     if(appID == 53){
-
+      if(SD.exists("/cracked.json")){
+        File crackedFile = SD.open("/cracked.json", FILE_READ);
+        if (!crackedFile) {
+          drawInfoBox("Error", "Failed to open cracked.json", "Check SD card!", true, false);
+          return;
+        }
+        crackedFile.close();
+        std::vector<CrackedEntry> entries = getCrackedEntries();
+        if (entries.empty()) {
+          drawInfoBox("Info", "No cracked entries found", "Try syncing", true, false);
+          crackedFile.close();
+          return;
+        }
+        String displayList[entries.size()];
+        while(true){
+          for (size_t i = 0; i < entries.size(); i++) {
+            displayList[i] = entries[i].ssid;
+          }
+          int8_t selection = drawMultiChoice("Cracked list", displayList, entries.size(), 5, 3);
+          if(selection == -1){
+            crackedFile.close();
+            return;
+          }
+          String detailInfo = "Password: " + entries[selection].password;
+          String detailInfo2 = "Bssid: " + entries[selection].bssid;
+          drawInfoBox(entries[selection].ssid, detailInfo, detailInfo2, true , false);
+          M5.update();
+          M5Cardputer.update();
+          Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+          if(M5Cardputer.Keyboard.isChange()){Sound(10000, 100, sound);}
+        }
+      }
+      else{
+        drawInfoBox("Error", "List is empty", "Try sync first!", true, false);
+      }
+      menuID = 0;
     }
     if(appID == 54){
-
+      String menuList[] = {"With keyboard", "With pc/phone", "Back"};
+      uint8_t choice = drawMultiChoice("WPAsec API key setup", menuList, 3, 6, 3);
+      if(choice == 0){
+        wpa_sec_api_key = userInput("API key", "Enter your WPAsec API key", 50);
+        if(wpa_sec_api_key.equals("")){
+          drawInfoBox("Error", "Key can't be empty", "Operation aborted", true, false);
+          wpa_sec_api_key = "";
+          saveSettings();
+          return;
+        }
+        if(saveSettings()){
+          drawInfoBox("Success", "API key saved", "", true, false);
+          return;
+        }
+        else{
+          drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+          return;
+        }
+      }
+      else if(choice == 1){
+        drawInfoBox("READY", "Connect to \"CardputerSetup\"", "and go to 192.168.4.1", false, false);
+        wpa_sec_api_key =  userInputFromWebServer("Your WPAsec API key");
+        if(wpa_sec_api_key.equals("")){
+          drawInfoBox("Error", "Key can't be empty", "Operation aborted", true, false);
+          wpa_sec_api_key = "";
+          saveSettings();
+          return;
+        }
+        else{
+          if(saveSettings()){
+            drawInfoBox("Success", "API key saved", "", true, false);
+            return;
+          }
+          else{
+            drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+            return;
+          }
+        }
+      }
+      else {
+        appRunning = false;
+        appID = 0;
+        menuID = 0;
+        return;
+      }
     }
     if(appID == 55){
       drawMenuList(wpasec_menu, 7, 3);
