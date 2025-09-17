@@ -63,7 +63,7 @@ cat <<EOF > firmware/stick.json
 }
 EOF
 
-bundle-cardputer-lite
-bundle-cardputer-full
+esptool.py --chip esp32s3 merge_bin -o full.bin   --flash_mode dio   --flash_freq 80m   --flash_size 8MB   0x0000 .pio/build/Cardputer-full/bootloader.bin   0x8000 .pio/build/Cardputer-full/partitions.bin   0xE000 ../../Documents/boot_app0.bin   0x10000 .pio/build/Cardputer-full/firmware.bin
+esptool.py --chip esp32s3 merge_bin -o lite.bin   --flash_mode dio   --flash_freq 80m   --flash_size 8MB   0x0000 .pio/build/cardputer-lite/bootloader.bin   0x8000 .pio/build/cardputer-lite/partitions.bin   0xE000 ../../Documents/boot_app0.bin   0x10000 .pio/build/cardputer-lite/firmware.bin
 
 echo "✅ Metadata files with full download URLs created"

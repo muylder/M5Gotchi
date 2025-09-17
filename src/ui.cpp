@@ -550,6 +550,7 @@ void runApp(uint8_t appID){
       String wifinets[20];
       if (numNetworks == 0) {
         drawInfoBox("Info", "No wifi nearby", "Abort.", true, false);
+        menuID = 0;
         return;
       } else {
         // Przechodzimy przez wszystkie znalezione sieci i zapisujemy ich nazwy w liście
@@ -566,6 +567,7 @@ void runApp(uint8_t appID){
       logMessage("Selected wifi: "+ wifiChoice);
       drawInfoBox("Succes", wifiChoice, "Was selected", true, false);
       updateActivity(true);
+      menuID = 0;
     }
     if(appID == 21){
       if(wifiChoice.equals("")){
@@ -575,6 +577,7 @@ void runApp(uint8_t appID){
         drawWifiInfoScreen(WiFi.SSID(intWifiChoice), WiFi.BSSIDstr(intWifiChoice), String(WiFi.RSSI(intWifiChoice)), String(WiFi.channel(intWifiChoice)));
       }
       updateActivity(true);
+      menuID = 0;
     }
     if(appID == 22){
       String appList[] = {"Phishing form", "Beacon spam", "AP mode", "Turn OFF"};
@@ -635,6 +638,7 @@ void runApp(uint8_t appID){
           broadcastFakeSSIDs( BeaconList , sizeof(BeaconList), sound);
         }
         else{
+          menuID = 0;
           return;
         }
       }
@@ -645,6 +649,7 @@ void runApp(uint8_t appID){
             WiFi.mode(WIFI_MODE_NULL);
             apMode = false;
             wifiChoice = "";
+            menuID = 0;
             return;
             }
         }
@@ -691,6 +696,7 @@ void runApp(uint8_t appID){
       menu_current_page = 1;
       menuID = 0;
       updateActivity(true);
+      menuID = 0;
     }
     if(appID == 23){
       bool answwear = drawQuestionBox("WARNING!", "This is illegal to use not", "on your network! Continue?");
@@ -716,6 +722,7 @@ void runApp(uint8_t appID){
           }
           uint8_t target = drawMultiChoice("Select target.", clients, clientLen, 0, 0);
           if(target==100){
+            menuID = 0;
             return;
           }
           logMessage("Selected target: " + clients[target]);
@@ -750,6 +757,7 @@ void runApp(uint8_t appID){
         }
       }
       updateActivity(true);
+      menuID = 0;
     }
     if(appID == 24){
       String mmenu[] = {"Mac sniffing", "EAPOL sniffing"};
@@ -811,6 +819,7 @@ void runApp(uint8_t appID){
               if(i=='`' && status.fn){
               esp_wifi_set_promiscuous(false);
               WiFi.mode(WIFI_MODE_NULL);
+              menuID = 0;
               return;
               }
             }
@@ -843,6 +852,7 @@ void runApp(uint8_t appID){
             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
             for(auto i : status.word){
               if(i=='`' && status.fn){
+                menuID = 0;
                 return;
               }
               delay(250);
@@ -885,6 +895,7 @@ void runApp(uint8_t appID){
         }
         else{
           drawInfoBox("Error!", "Can't init EAPOL sniffer.", "Check SD card!", true, false);
+          menuID = 0;
           return;
         }
       }
@@ -914,30 +925,36 @@ void runApp(uint8_t appID){
             drawInfoBox("ERROR", "Pwnagothi init failed!", "", true, true);
             pwnagothiMode = false;
           }
+          menuID = 0;
           return;
         }
       }
       else{
         drawInfoBox("WTF?!", "Pwnagothi mode is on", "Can't you just look at UI!??", true, true);
       }
+      menuID = 0;
       return;
     }
     if(appID == 37){
       pwnagothiMode = false;
       WiFi.mode(WIFI_MODE_NULL);
       drawInfoBox("INFO", "Auto mode turned off", "Enabled manual mode", true, false);
+      menuID = 0;
     }
     if(appID == 38){
       editWhitelist();
+      menuID = 0;
     }
     if(appID == 39){
       if(!SD.begin(SD_CS, sdSPI, 1000000)) {
         drawInfoBox("Error", "Cannot open SD card", "Check SD card!", true, true);
+        menuID = 0;
         return;
       }
       File root = SD.open("/handshake");
       if (!root || !root.isDirectory()) {
         drawInfoBox("Error", "Cannot open /handshakes", "Check SD card!", true, true);
+        menuID = 0;
         return;
       }
       String fileList[50];
@@ -951,38 +968,47 @@ void runApp(uint8_t appID){
       }
       if (fileCount == 0) {
         drawInfoBox("Info", "No handshakes found", "", true, false);
+        menuID = 0;
         return;
       }
       drawMultiChoice("Handshakes:", fileList, fileCount, 5, 3);
       updateActivity(true);
+      menuID = 0;
     }
     if(appID == 40){
         String name = userInput("New value", "Change Hostname to:", 18);
         if(name != ""){
           hostname = name;
           if(saveSettings()){
+            menuID = 0;
             return;
           }
           else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+          menuID = 0;
           return;
         }
         drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
+        menuID = 0;
     }
     if(appID == 41){
       brightnessPicker();
       if(saveSettings()){
+        menuID = 0;
         return;
       }
       else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+      menuID = 0;
     }
     if(appID == 42){
       String selection[] = {"Off", "On"};
       delay(50);
       sound = drawMultiChoice("Sound", selection, 2, 6, 2);
       if(saveSettings()){
+        menuID = 0;
         return;
       }
       else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+      menuID = 0;
     }
     if(appID == 43){
       WiFi.mode(WIFI_STA);
@@ -998,6 +1024,7 @@ void runApp(uint8_t appID){
         }
         if(WiFi.isConnected()){
           drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+          menuID = 0;
           return;
         }
       
@@ -1005,6 +1032,7 @@ void runApp(uint8_t appID){
       String wifinets[20];
       if (numNetworks == 0) {
         drawInfoBox("Info", "No wifi nearby", "Abort.", true, false);
+        menuID = 0;
         return;
       } else {
         // Przechodzimy przez wszystkie znalezione sieci i zapisujemy ich nazwy w liście
@@ -1031,6 +1059,7 @@ void runApp(uint8_t appID){
       if(WiFi.isConnected()){
         drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
         if(saveSettings()){
+          menuID = 0;
           return;
         }
         else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
@@ -1038,6 +1067,7 @@ void runApp(uint8_t appID){
       else{
         drawInfoBox("Error", "Connection failed", "Maybe wrong password...", true, false);
       }
+      menuID = 0;
     }
     if(appID == 44){
       String tempMenu[] = {"From SD", "From WIFI", "From Github"};
@@ -1057,13 +1087,15 @@ void runApp(uint8_t appID){
         updateFromGithub();
         drawInfoBox("ERROR!", "Update failed!", "Try again or contact dev", true, false);
       }
+      menuID = 0;
       }
     if(appID == 45){
-      drawInfoBox("M5Gothi", "v" + String(CURRENT_VERSION) + " by Devsur11  ", "www.github.com/Devsur11 ", true, false);
+      drawInfoBox("M5Gotchi", "v" + String(CURRENT_VERSION) + " by Devsur11  ", "www.github.com/Devsur11 ", true, false);
     }
     if(appID == 46){
       M5.Display.fillScreen(tx_color_rgb565);
       esp_deep_sleep_start(); 
+      menuID = 0;
       }
     if(appID == 47){
       String options[] = {"Turn ON", "Turn OFF", "Back"};
@@ -1075,8 +1107,10 @@ void runApp(uint8_t appID){
         WiFi.mode(WIFI_MODE_NULL);
         drawInfoBox("WiFi", "WiFi turned OFF", "", true, false);
       } else {
+        menuID = 0;
         return;
       }
+      menuID = 0;
     }
     if(appID == 48){
       String options[] = {"Enable", "Disable", "Back"};
@@ -1085,6 +1119,7 @@ void runApp(uint8_t appID){
         pwnagothiModeEnabled = true;
         if (saveSettings()) {
           drawInfoBox("Success", "Pwnagothi will run", "on boot", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
@@ -1093,13 +1128,16 @@ void runApp(uint8_t appID){
         pwnagothiModeEnabled = false;
         if (saveSettings()) {
           drawInfoBox("Success", "Pwnagothi will NOT run", "on boot", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
         }
       } else {
+        menuID = 0;
         return;
       }
+      menuID = 0;
     }
     if(appID == 49){
       String options[] = {"Enable", "Disable", "Back"};
@@ -1121,8 +1159,10 @@ void runApp(uint8_t appID){
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
         }
       } else {
+        menuID = 0;
         return;
       }
+      menuID = 0;
     }
     if(appID == 50){
       String themeOptions[] = {"White mode", "Dark mode", "Custom", "Back"};
@@ -1169,8 +1209,10 @@ void runApp(uint8_t appID){
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
         }
       } else {
+        menuID = 0;
         return;
       }
+      menuID = 0;
     }
     if(appID == 51){
       bool confirm = drawQuestionBox("Factory Reset", "Delete config and WPA-SEC data?", "", "Press 'y' to confirm, 'n' to cancel");
@@ -1207,6 +1249,7 @@ void runApp(uint8_t appID){
         delay(1000);
         runApp(52);
       }
+      menuID = 0;
     }    
     if(appID == 53){
       if(SD.exists("/cracked.json")){
