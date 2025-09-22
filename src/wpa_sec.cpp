@@ -10,6 +10,10 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 
+extern const uint8_t _binary_certs_wpa_sec_root_pem_start[] asm("_binary_certs_wpa_sec_root_pem_start");
+extern const uint8_t _binary_certs_wpa_sec_root_pem_end[]   asm("_binary_certs_wpa_sec_root_pem_end");
+
+
 String userInputFromWebServer(String titleOfEntryToGet) {
     String api_key = "";
     bool api_key_received = false;
@@ -85,7 +89,7 @@ std::vector<CrackedEntry> getCrackedEntries() {
         return entries;
     }
 
-    DynamicJsonDocument doc(16384); // 16 KB buffer, adjust if needed
+    JsonDocument doc; // 16 KB buffer, adjust if needed
     DeserializationError error = deserializeJson(doc, file);
     file.close();
 
@@ -115,7 +119,7 @@ std::vector<CrackedEntry> getCrackedEntries() {
 }
 
 // Helper: check if filename exists in uploaded.json
-bool isAlreadyUploaded(const char* fileName, DynamicJsonDocument &doc) {
+bool isAlreadyUploaded(const char* fileName, JsonDocument &doc) {
     if (!doc.is<JsonArray>()) return false;
     for (JsonVariant v : doc.as<JsonArray>()) {
         if (v.as<String>() == String(fileName)) return true;
@@ -124,7 +128,7 @@ bool isAlreadyUploaded(const char* fileName, DynamicJsonDocument &doc) {
 }
 
 // Helper: save uploaded.json back to SD (pretty)
-void saveUploadedList(DynamicJsonDocument &doc) {
+void saveUploadedList(JsonDocument &doc) {
     File jsonFile = SD.open("/uploaded.json", FILE_WRITE);
     if (!jsonFile) {
         logMessage("Failed to open /uploaded.json for writing");
@@ -152,7 +156,7 @@ bool uploadToWpaSec(const char* apiKey, const char* pcapPath, const char* fileNa
     logMessage("Preparing upload: " + String(fileName) + " (" + String(fileSize) + " bytes)");
 
     WiFiClientSecure client;
-    client.setInsecure(); // accept any cert. Replace with cert validation if needed.
+    client.setCACert((const char*)_binary_certs_wpa_sec_root_pem_start);
 
     const char* host = "wpa-sec.stanev.org";
     const uint16_t port = 443;
@@ -281,7 +285,7 @@ String decodeChunkedBody(const String &chunked) {
 
 static void parseAndSavePotfileBody(const String &bodyRaw) {
     // Load or init cracked.json
-    DynamicJsonDocument crackedDoc(16384);
+    JsonDocument crackedDoc;
     if (SD.exists("/cracked.json")) {
         File cf = SD.open("/cracked.json", FILE_READ);
         if (cf) {
@@ -354,7 +358,7 @@ static void parseAndSavePotfileBody(const String &bodyRaw) {
         if (exists) {
             logMessage("Duplicate cracked entry skipped: " + ssid);
         } else {
-            JsonObject entry = arr.createNestedObject();
+            JsonObject entry = arr.add<JsonObject>();
             entry["bssid"] = bssid;
             entry["ssid"] = ssid;
             entry["password"] = pass;
@@ -376,7 +380,7 @@ static void parseAndSavePotfileBody(const String &bodyRaw) {
 // ---------- replacement processWpaSec download/parse block ----------
 void processWpaSec(const char* apiKey) {
     // Load uploaded.json (list of filenames)
-    DynamicJsonDocument uploadedDoc(4096);
+    JsonDocument uploadedDoc;
     if (SD.exists("/uploaded.json")) {
         logMessage("Loading /uploaded.json");
         File upf = SD.open("/uploaded.json", FILE_READ);
@@ -428,9 +432,9 @@ void processWpaSec(const char* apiKey) {
     }
 
     // --- Download cracked potfile via raw HTTPS request (same as earlier) ---
-    logMessage("Downloading cracked results (raw HTTP) ...");
+    logMessage("Downloading cracked results (raw HTTPS) ...");
     WiFiClientSecure client;
-    client.setInsecure(); // ok for embedded use; replace with CA pin if required
+    client.setCACert((const char*)_binary_certs_wpa_sec_root_pem_start);
     const char* host = "wpa-sec.stanev.org";
     const uint16_t port = 443;
     if (!client.connect(host, port)) {

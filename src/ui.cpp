@@ -175,7 +175,8 @@ menu pwngotchi_menu[] = {
     {"Turn on", 36},
     {"Turn off", 37},
     {"Whitelist", 38},
-    {"Handshakes", 39}
+    {"Handshakes", 39},
+    {"Personality", 57}
 };
 
 //menuID 6
@@ -187,6 +188,8 @@ menu settings_menu[] = {
   {"Display brightness", 41},
   {"Sound", 42},
   {"Connect to wifi", 43},
+  {"GO button function", 59},
+  {"Log to SD", 58},
   {"Update system", 44},
   {"Factory reset", 51},
   {"About", 45},
@@ -220,6 +223,49 @@ String passCaptured = "";
 bool cloned;
 uint16_t bg_color_rgb565;
 uint16_t tx_color_rgb565;
+bool sleep_mode = false;
+SemaphoreHandle_t buttonSemaphore;
+
+
+void buttonTask(void *param) {
+  bool dimmed = false;
+  for (;;) {
+    if (xSemaphoreTake(buttonSemaphore, portMAX_DELAY) == pdTRUE) {
+      if(!toogle_pwnagothi_with_gpio0)
+      {dimmed = !dimmed;
+      if (dimmed) {
+        M5Cardputer.Display.setBrightness(0);  // example dim value
+      } else {
+        M5Cardputer.Display.setBrightness(brightness);
+      }}
+      else{
+        if(!pwnagothiMode){
+          pwnagothiMode = true;
+          pwnagothiBegin();
+          logMessage("Pwnagothi mode activated");
+        }
+        else{
+          pwnagothiMode = false;
+          logMessage("Pwnagothi mode deactivated");
+        }
+      }
+    }
+  }
+}
+
+volatile unsigned long lastInterruptTime = 0;
+
+void IRAM_ATTR handleInterrupt() {
+  unsigned long now = millis();
+  if (now - lastInterruptTime > 200) {  // 200ms debounce
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(buttonSemaphore, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+      portYIELD_FROM_ISR();
+    }
+  }
+  lastInterruptTime = now;
+}
 
 uint16_t RGBToRGB565(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
@@ -246,6 +292,9 @@ void initColorSettings(){
 }
 
 void initUi() {
+  attachInterrupt(digitalPinToInterrupt(0), handleInterrupt, FALLING);
+  buttonSemaphore = xSemaphoreCreateBinary();
+  xTaskCreate(buttonTask, "ButtonTask", 4096, NULL, 1, NULL);
   M5.Display.setRotation(1);
   M5.Display.setTextSize(1);
   M5.Display.fillScreen(bg_color_rgb565);
@@ -345,10 +394,10 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   }
   #endif
   else if (menuID == 5){
-    drawMenuList( pwngotchi_menu , 5, 4);
+    drawMenuList( pwngotchi_menu , 5, 5);
   }
   else if (menuID == 6){
-    drawMenuList( settings_menu , 6, 12);
+    drawMenuList( settings_menu , 6, 14);
   }  
   else if (menuID == 7){
     drawMenuList(wpasec_menu, 7, 3);
@@ -528,9 +577,9 @@ void runApp(uint8_t appID){
     if(appID == 2){drawMenuList(bluetooth_menu, 3, 6);}
     if(appID == 3){drawMenuList(IR_menu, 4, 5 );}
     #endif
-    if(appID == 4){drawMenuList(pwngotchi_menu, 5 , 3 );}
+    if(appID == 4){drawMenuList(pwngotchi_menu, 5 , 5);}
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
-    if(appID == 6){drawMenuList(settings_menu ,6  ,12);}
+    if(appID == 6){drawMenuList(settings_menu ,6  , 14);}
     if(appID == 7){}
     if(appID == 8){}
     if(appID == 9){}
@@ -971,7 +1020,7 @@ void runApp(uint8_t appID){
         menuID = 0;
         return;
       }
-      drawMultiChoice("Handshakes:", fileList, fileCount, 5, 3);
+      drawMultiChoiceLonger("Handshakes:", fileList, fileCount, 5, 3);
       updateActivity(true);
       menuID = 0;
     }
@@ -1215,21 +1264,24 @@ void runApp(uint8_t appID){
       menuID = 0;
     }
     if(appID == 51){
-      bool confirm = drawQuestionBox("Factory Reset", "Delete config and WPA-SEC data?", "", "Press 'y' to confirm, 'n' to cancel");
+      bool confirm = drawQuestionBox("Factory Reset", "Delete all config data?", "", "Press 'y' to confirm, 'n' to cancel");
       if (!confirm) {
         drawInfoBox("Aborted", "Factory reset cancelled", "", true, false);
         return;
       }
-      drawInfoBox("Factory Reset", "Deleting config...", "", false, false);
+      drawInfoBox("Factory Reset", "Deleting config data...", "", false, false);
       if (SD.exists(NEW_CONFIG_FILE)) {
         SD.remove(NEW_CONFIG_FILE);
         SD.remove("/uploaded.json");
         SD.remove("/cracked.json");
-        drawInfoBox("Success", "Config deleted", "Restarting...", false, false);
+        SD.remove(PERSONALITY_FILE);
+        drawInfoBox("Success", "Data deleted", "Restarting...", false, false);
         delay(1000);
         ESP.restart();
       } else {
-        drawInfoBox("Error", "Config file not found", "Nothing to delete", true, false);
+        drawInfoBox("Error", "Data files not found", "Nothing to delete", true, false);
+        menuID = 0;
+        return;
       }
     }
     if(appID == 52){
@@ -1241,13 +1293,13 @@ void runApp(uint8_t appID){
           drawInfoBox("Syncing", "Syncing data with WPASec", "Please wait...", false, false);
           processWpaSec(wpa_sec_api_key.c_str());
           drawInfoBox("Done", "Sync finished", "Press enter to continue", true, false);
+          menuID = 0;
+          appID = 0;
           return;
         }
       }
       else{
-        runApp(43);
-        delay(1000);
-        runApp(52);
+        drawInfoBox("Error", "No wifi connection", "Connect to wifi in settings!", true, false);
       }
       menuID = 0;
     }    
@@ -1298,14 +1350,20 @@ void runApp(uint8_t appID){
           drawInfoBox("Error", "Key can't be empty", "Operation aborted", true, false);
           wpa_sec_api_key = "";
           saveSettings();
+          appID = 0;
+          menuID = 0;
           return;
         }
         if(saveSettings()){
           drawInfoBox("Success", "API key saved", "", true, false);
+          appID = 0;
+          menuID = 0;
           return;
         }
         else{
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
+          appID = 0;
+          menuID = 0;
           return;
         }
       }
@@ -1342,7 +1400,279 @@ void runApp(uint8_t appID){
     if(appID == 56){
       ESP.restart();
     }
+    if(appID == 57){
+      if(initPersonality()){
+        delay(500);
+        }
+      else{
+        drawInfoBox("Error", "Can't load personality", "Check SD card!", true, false);
+        menuID = 0;
+        return;
+      }
+      while (true) {
+        String personality_options[] = {
+          "Nap time" + String(" (ms): ") + String(pwnagotchi.nap_time),
+          "Delay after wifi scan" + String(" (ms): ") + String(pwnagotchi.delay_after_wifi_scan), 
+          "Delay after no networks found" + String(" (ms): ") + String(pwnagotchi.delay_after_no_networks_found), 
+          "Delay after attack fail" + String(" (ms): ") + String(pwnagotchi.delay_after_attack_fail),
+          "Delay after attack success" + String(" (ms): ") + String(pwnagotchi.delay_after_successful_attack),
+          "Deauth packets sent" + String(" : ") + String(pwnagotchi.deauth_packets_sent),
+          "Delay after deauth" + String(" (ms): ") + String(pwnagotchi.delay_after_deauth),
+          "Delay after picking target" + String(" (ms): ") + String(pwnagotchi.delay_after_picking_target),
+          "Delay before switching target" + String(" (ms): ") + String(pwnagotchi.delay_before_switching_target),
+          "Delay after client found" + String(" (ms): ") + String(pwnagotchi.delay_after_client_found),
+          "Handshake wait time" + String(" (ms): ") + String(pwnagotchi.handshake_wait_time),
+          "Deauth packet delay" + String(" (ms): ") + String(pwnagotchi.deauth_packet_delay),
+          "Delay after no clients found" + String(" (ms): ") + String(pwnagotchi.delay_after_no_clients_found),
+          "Client discovery timeout" + String(" (ms): ") + String(pwnagotchi.client_discovery_timeout),
+          "Sound on events" + String(pwnagotchi.sound_on_events ? " (y)" : " (n)"),
+          "Deauth on" + String(pwnagotchi.deauth_on ? " (y)" : " (n)"),
+          "Add to whitelist on success" + String(pwnagotchi.add_to_whitelist_on_success ? " (y)" : " (n)"),
+          "Add to whitelist on fail" + String(pwnagotchi.add_to_whitelist_on_fail ? " (y)" : " (n)"),
+          "Activate sniffer on deauth" + String(pwnagotchi.activate_sniffer_on_deauth ? " (y)" : " (n)"),
+          "Back"
+        };
+      
+        int8_t choice = drawMultiChoiceLonger("Personality settings", personality_options, 20, 6, 4);
+        if(choice == 19 || choice == -1){
+          savePersonality();
+          menuID = 0;
+          return;
+        }
+        else if(choice >= 14){
+          bool valueToSet = getBoolInput(personality_options[choice], "Press y or n, then ENTER", false);
+          switch (choice) {
+            case 14:
+              pwnagotchi.sound_on_events = valueToSet;
+              break;
+            case 15:
+              pwnagotchi.deauth_on = valueToSet;
+              break;
+            case 16:
+              pwnagotchi.add_to_whitelist_on_success = valueToSet;
+              break;
+            case 17:
+              pwnagotchi.add_to_whitelist_on_fail = valueToSet;
+              break;
+            case 18:
+              pwnagotchi.activate_sniffer_on_deauth = valueToSet;
+              break;
+            case 19:
+              savePersonality();
+              menuID = 0;
+              return;
+            default:
+              break;
+          }
+          savePersonality();
+        }
+        else{
+          int16_t valueToSet = getNumberfromUser(personality_options[choice], "Enter new value", 60000);
+          if(valueToSet == -1){
+            continue;
+          }
+          switch (choice) {
+            case 0:
+              pwnagotchi.nap_time = valueToSet;
+              break;
+            case 1:
+              pwnagotchi.delay_after_wifi_scan = valueToSet;
+              break;
+            case 2:
+              pwnagotchi.delay_after_no_networks_found = valueToSet;
+              break;
+            case 3:
+              pwnagotchi.delay_after_attack_fail = valueToSet;
+              break;
+            case 4:
+              pwnagotchi.delay_after_successful_attack = valueToSet;
+              break;
+            case 5:
+              pwnagotchi.deauth_packets_sent = valueToSet;
+              break;
+            case 6:
+              pwnagotchi.delay_after_deauth = valueToSet;
+              break;
+            case 7:
+              pwnagotchi.delay_after_picking_target = valueToSet;
+              break;
+            case 8:
+              pwnagotchi.delay_before_switching_target = valueToSet;
+              break;
+            case 9:
+              pwnagotchi.delay_after_client_found = valueToSet;
+              break;
+            case 10:
+              pwnagotchi.handshake_wait_time = valueToSet;
+              break;
+            case 11:
+              pwnagotchi.deauth_packet_delay = valueToSet;
+              break;
+            case 12:
+              pwnagotchi.delay_after_no_clients_found = valueToSet;
+              break;
+            case 13:
+              pwnagotchi.client_discovery_timeout = valueToSet;
+              break;
+            default:
+              break;
+          }
+          savePersonality();
+        }
+      }
+      }
+    if(appID == 58){
+      String menuu[] = {"Yes", "No", "Back"};
+      int8_t choice = drawMultiChoice("Log to sd card?", menuu, 3, 6, 0);
+      if(choice == 0){
+        sd_logging = true;
+        if(saveSettings()){
+          drawInfoBox("Success", "Logging to SD card enabled", "", true, false);
+          menuID = 0;
+          return;
+        }
+        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+      }
+      else if(choice == 1){
+        sd_logging = false;
+        if(saveSettings()){
+          drawInfoBox("Success", "Logging to SD card disabled", "", true, false);
+          menuID = 0;
+          return;
+        }
+        else{drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);}
+      }
+      else{
+        menuID = 0;
+        return;
+      }
+    }
+    if(appID == 59){
+      String menuu[] = {"Dim screen", "Toggle auto mode", "Back"};
+      int8_t choice = drawMultiChoice("On tap action", menuu, 3, 6, 0);
+      if(choice == 0){
+        toogle_pwnagothi_with_gpio0 = false;
+        saveSettings();
+      }
+      else if(choice == 1){
+        toogle_pwnagothi_with_gpio0 = true;
+        saveSettings();
+      }
+      else{
+        menuID = 0;
+        return;
+      }
+      menuID = 0;
+      return;
+    }
     return;
+  }
+}
+
+int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
+  uint16_t number = 0;
+  appRunning = true;
+  delay(500);
+  while (true){
+    drawTopCanvas();
+    drawBottomCanvas();
+    canvas_main.clear(bg_color_rgb565);
+    canvas_main.setTextSize(1.5);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.setCursor(5, 10);
+    canvas_main.println(tittle + ":");
+    canvas_main.setTextDatum(middle_center);
+    canvas_main.setTextSize(1);
+    canvas_main.drawString(desc, canvas_center_x, canvas_h * 0.9);
+    canvas_main.setTextSize(1.5);
+    canvas_main.drawString(String(number), canvas_center_x, canvas_h / 2);
+    pushAll();
+    M5.update();
+    M5Cardputer.update();
+    sleepFunction();
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+    if(keyboard_changed){Sound(10000, 100, sound);}
+    Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    for(auto i : status.word){
+      if(i=='`' && status.fn){
+        appRunning = false;
+        return 0;
+      }
+      if(i>='0' && i<='9'){
+        number = number * 10 + (i - '0');
+        delay(250);
+      }
+    }
+    if (status.del) {
+      logMessage("Delete pressed");
+      if (number > 0) {
+          number = number / 10;
+      }
+      delay(250);
+    }
+    if (status.enter) {
+      if(number > maxNumber){
+        drawInfoBox("Error", "Number can't be higher than " + String(maxNumber), "", true, false);
+        number = 0;
+        delay(500);
+      }
+      else{
+        appRunning = false;
+        logMessage("Number input returning: " + String(number));
+        return number;
+      }
+    }
+  }
+}
+
+bool getBoolInput(String tittle, String desc, bool defaultValue){
+  bool toReturn = defaultValue;
+  appRunning = true;
+  delay(500);
+  while (true){
+    drawTopCanvas();
+    drawBottomCanvas();
+    canvas_main.clear(bg_color_rgb565);
+    canvas_main.setTextSize(1.5);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.setCursor(5, 10);
+    canvas_main.println(tittle + ":");
+    canvas_main.setTextSize(1);
+    canvas_main.setTextDatum(middle_center);
+    canvas_main.drawString(desc, canvas_center_x, canvas_h * 0.9);
+    canvas_main.setTextSize(1.5);
+    if(toReturn){
+      canvas_main.drawString("True", canvas_center_x, canvas_h / 2);
+    }
+    else{
+      canvas_main.drawString("False", canvas_center_x, canvas_h / 2);
+    }
+    pushAll();
+    M5.update();
+    M5Cardputer.update();
+    sleepFunction();
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+    if(keyboard_changed){Sound(10000, 100, sound);}
+    Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    for(auto i : status.word){
+      if(i=='`' && status.fn){
+        appRunning = false;
+        return defaultValue;
+      }
+      if(i=='t'){//'y'){ replace with t for relase - my cardputer keyboard has broken t key
+        toReturn = true;
+        delay(250);
+      }
+      if(i=='f'){
+        toReturn = false;
+        delay(250);
+      }
+    }
+    if (status.enter) {
+      appRunning = false;
+      logMessage("Bool input returning: " + String(toReturn));
+      return toReturn;
+    }
   }
 }
 
@@ -1572,6 +1902,94 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
         menu_current_page = 3;
       }
       else if(menu_current_opt >= 12 && menu_current_page != 4 && menu_current_opt <=16){
+        menu_current_page = 4;
+      }
+    }
+    if(isOkPressed()){
+      Sound(10000, 100, sound);
+      menuID = prevMenuID;
+      menu_current_opt = prevOpt;
+      return tempOpt;
+    }
+    
+  }
+}
+
+int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uint8_t prevMenuID, uint8_t prevOpt) {
+  delay(100);
+  uint8_t tempOpt = 0;
+  menu_current_opt = 0;
+  menu_current_page = 1;
+  menu_len = menuSize;
+  singlePage = false;
+  while(true){
+    drawTopCanvas();
+    drawBottomCanvas();
+    M5.update();
+    M5Cardputer.update();  
+    keyboard_changed = M5Cardputer.Keyboard.isChange();
+    if(keyboard_changed){Sound(10000, 100, sound);}
+    Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+    sleepFunction();
+
+    canvas_main.clear(bg_color_rgb565);
+    canvas_main.fillSprite(bg_color_rgb565); //Clears main display
+    canvas_main.setTextSize(1.5);
+    canvas_main.setTextColor(tx_color_rgb565);
+    canvas_main.setColor(tx_color_rgb565);
+    canvas_main.setTextDatum(top_left);
+    canvas_main.setCursor(1, PADDING + 1);
+    canvas_main.println(tittle);
+    canvas_main.setTextSize(1);
+    char display_str[100] = "";
+    for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 8)) ; j++) {
+      sprintf(display_str, "%s %s", (tempOpt == j+( (menu_current_page - 1) * 8 ) ) ? ">" : " ",
+             toDraw[j+ ( (menu_current_page - 1) * 8)].c_str());
+      int y = 8 + (j * 20 / 2) + 20;
+      canvas_main.drawString(display_str, 0, y);
+    }
+    pushAll();
+
+    
+    for(auto i : status.word){
+      if(i=='`'){
+        Sound(10000, 100, sound);
+        menuID = prevMenuID;
+        menu_current_opt = prevOpt;
+        return -1;
+      }
+    }
+
+    if (isNextPressed()) {
+      if (menu_current_opt < menu_len - 1 ) {
+        menu_current_opt++;
+        tempOpt++;
+      } else {
+        menu_current_opt = 0;
+        tempOpt = 0;
+      }
+    }
+    if (isPrevPressed()) {
+      if (menu_current_opt > 0) {
+        menu_current_opt--;
+        tempOpt--;
+      }
+      else {
+        menu_current_opt = (menu_len - 1);
+        tempOpt = (menu_len - 1);
+      }
+    }
+    if(!singlePage){
+      if(menu_current_opt < 8 && menu_current_page != 1){
+        menu_current_page = 1;
+      } 
+      else if(menu_current_opt >= 8 && menu_current_page != 2 && menu_current_opt <16){
+        menu_current_page = 2;
+      }
+      else if(menu_current_opt >= 16 && menu_current_page != 3 && menu_current_opt <24){
+        menu_current_page = 3;
+      }
+      else if(menu_current_opt >= 24 && menu_current_page != 4 && menu_current_opt <=16){
         menu_current_page = 4;
       }
     }
@@ -1894,24 +2312,24 @@ inline void updateM5(){
   if(keyboard_changed){Sound(10000, 100, sound);}   
 }
 
-bool sleep_mode = false;
+
 
 void sleepFunction(){
-  if(M5.BtnA.isPressed()){
-    if(sleep_mode == false){
-      delay(250);
-      M5.Lcd.setBrightness(0);
-      M5.Display.fillScreen(tx_color_rgb565);
-      sleep_mode = true;
-      return;
-    }
-    if(sleep_mode == true){
-      delay(250);
-      M5.Lcd.setBrightness(brightness);
-      initUi();
-      sleep_mode = false;
-    }
-  }
+  // if(M5.BtnA.isPressed()){
+  //   if(sleep_mode == false){
+  //     delay(250);
+  //     M5.Lcd.setBrightness(0);
+  //     M5.Display.fillScreen(tx_color_rgb565);
+  //     sleep_mode = true;
+  //     return;
+  //   }
+  //   if(sleep_mode == true){
+  //     delay(250);
+  //     M5.Lcd.setBrightness(brightness);
+  //     initUi();
+  //     sleep_mode = false;
+  //   }
+  // }
 }
 
 #ifndef LITE_VERSION
@@ -2029,6 +2447,7 @@ String colorPickerUI(bool pickingText, String bg_color_toset) {
     canvas_main.setTextColor(tx_color_rgb565);
     if(pickingText) canvas_main.setTextColor(preview_color);
     canvas_main.drawString("Confirm", preview_x, preview_y + preview_h/2 - 6);
+    canvas_main.setTextColor(tx_color_rgb565);
     canvas_main.drawString("Up/Down: value Left/Right: color OK set", preview_x, preview_y + preview_h/2 + 12);
 
     pushAll();

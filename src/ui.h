@@ -49,3 +49,7 @@ String colorPickerUI(bool pickingText, String bg_color_toset);
 void initColorSettings();
 void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size);
 int brightnessPicker();
+int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber);
+bool getBoolInput(String tittle, String desc, bool defaultValue);
+int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uint8_t prevMenuID, uint8_t prevOpt);
+void IRAM_ATTR handleInterrupt();

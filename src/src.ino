@@ -6,7 +6,10 @@
 #include "pwnagothi.h"
 #include "moodLoader.h"
 #include "Arduino.h"
+#ifdef LITE_VERSION
 #include "githubUpdater.h"
+#include "wpa_sec.h"
+#endif
 
 uint8_t state;
 uint8_t activity = 14;
@@ -62,6 +65,12 @@ void setup() {
     drawInfoBox("Update", "No new firmware version found", "Booting...", false, false);
     logMessage("No new firmware version found, or wifi not connected");
     delay(1000);
+  }
+  if(WiFi.status() == WL_CONNECTED) {
+    if(lite_mode_wpa_sec_sync_on_startup){
+      logMessage("Syncing known networks with WPA_SEC");
+      processWpaSec(wpa_sec_api_key.c_str());
+    }
   }
   #endif
   #endif
