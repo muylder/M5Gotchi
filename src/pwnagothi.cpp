@@ -24,7 +24,7 @@ bool pwnagothiBegin(){
     }   
     setMood(1, "(o_o)", "3 seconds for auto mode start... ESC to cancel");
     updateUi(true, false);
-    
+    WiFi.disconnect();
     uint32_t start = millis();
     while(millis() - start < 3000){
         M5.update();
