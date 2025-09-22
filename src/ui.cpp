@@ -122,7 +122,7 @@ String broken_ssids[]{
 // menuID 1
 menu main_menu[] = {
     {"Manual mode", 1},
-    {"Auto", 4},
+    {"Auto mode", 4},
     {"WPA-SEC companion", 55},
     #ifdef USE_EXPERIMENTAL_APPS
     {"Bluetooth", 2},
