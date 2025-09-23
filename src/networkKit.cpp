@@ -243,6 +243,15 @@ void deauth_promiscuous_rx_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     if (!is_client_known(addr2)) {
       logMessage("Client ADDED");
       add_client(addr2);
+      // Print MAC address in correct format
+      String macStr = "";
+      for (int i = 0; i < 6; i++) {
+        char buf[4];
+        snprintf(buf, sizeof(buf), "%02X", addr2[i]);
+        macStr += buf;
+        if (i < 5) macStr += ":";
+      }
+      logMessage(macStr);
     }
   }
 }
@@ -259,14 +268,11 @@ bool is_client_known(uint8_t *mac) {
 void get_clients_list(String client_list[], int &count) {
   count = client_count;  // Przypisz aktualną liczbę klientów
   for (int i = 0; i < client_count; i++) {
-    String mac = "";
-    for (int j = 0; j < 6; j++) {
-      mac += String(network_clients[i][j], HEX);
-      if (j < 5) {
-        mac += ":";
-      }
-    }
-    client_list[i] = mac;
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             network_clients[i][0], network_clients[i][1], network_clients[i][2],
+             network_clients[i][3], network_clients[i][4], network_clients[i][5]);
+    client_list[i] = String(macStr);
   }
 }
 

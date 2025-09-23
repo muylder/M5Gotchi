@@ -1308,6 +1308,7 @@ void runApp(uint8_t appID){
         File crackedFile = SD.open("/cracked.json", FILE_READ);
         if (!crackedFile) {
           drawInfoBox("Error", "Failed to open cracked.json", "Check SD card!", true, false);
+          menuID = 0;
           return;
         }
         crackedFile.close();
@@ -1315,6 +1316,7 @@ void runApp(uint8_t appID){
         if (entries.empty()) {
           drawInfoBox("Info", "No cracked entries found", "Try syncing", true, false);
           crackedFile.close();
+          menuID = 0;
           return;
         }
         String displayList[entries.size()];
@@ -1325,6 +1327,7 @@ void runApp(uint8_t appID){
           int8_t selection = drawMultiChoice("Cracked list", displayList, entries.size(), 5, 3);
           if(selection == -1){
             crackedFile.close();
+            menuID = 0;
             return;
           }
           String detailInfo = "Password: " + entries[selection].password;
@@ -2351,9 +2354,9 @@ void editWhitelist(){
       writeID++;
     }
     else if (choice==2 || choice == -1){
-      delay(100);
-      setWhitelistFromArray(listToReturn);
-      return;
+      drawInfoBox("Restarting...", "Restart is needed, ", "for changes to apply", false, false);
+      delay(5000);
+      ESP.restart();
     }
     else if (choice==1){
       s16_t idOfItemToRemove = drawMultiChoice("Remove element", listToReturn, writeID, 0, 0);
@@ -2361,11 +2364,14 @@ void editWhitelist(){
         continue;
       }
       else
-      {removeItemFromWhitelist(listToReturn[idOfItemToRemove]);
-      writeID = writeID - 2;
-      if(writeID < 0){
-        writeID = 0;
-      }}
+      {
+        removeItemFromWhitelist(listToReturn[idOfItemToRemove]);
+        if(writeID > 0){
+          writeID = writeID - 1;
+        }
+        // Re-parse whitelist to update local array after deletion
+        listToReturn = parseWhitelist(writeID);
+      }
     }
     else if (choice==3){
       delay(100);

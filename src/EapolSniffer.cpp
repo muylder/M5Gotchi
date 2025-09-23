@@ -431,7 +431,7 @@ void SnifferSwitchChannel() {
 
 void SnifferEnd() {
     esp_wifi_set_promiscuous(false);
-    WiFi.disconnect(true);
+    WiFi.disconnect(false);
 
     for (auto &entry : apFiles) {
       if (entry.second.file) {

