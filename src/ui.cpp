@@ -226,6 +226,10 @@ uint16_t tx_color_rgb565 ;//= TFT_BLACK;
 bool sleep_mode = false;
 SemaphoreHandle_t buttonSemaphore;
 
+void esp_will_beg_for_its_life() {
+  int *ptr = nullptr;
+  *ptr = 42; // hehehe
+}
 
 void buttonTask(void *param) {
   bool dimmed = false;
@@ -1864,9 +1868,13 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     canvas_main.println(tittle);
     canvas_main.setTextSize(2);
     char display_str[100] = "";
-    for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 4)) ; j++) {
-      sprintf(display_str, "%s %s", (tempOpt == j+( (menu_current_page - 1) * 4 ) ) ? ">" : " ",
-             toDraw[j+ ( (menu_current_page - 1) * 4)].c_str());
+    uint8_t startIdx = (menu_current_page - 1) * 4;
+    uint8_t itemsToShow = menu_len > startIdx ? menu_len - startIdx : 0;
+    if (itemsToShow > 4) itemsToShow = 4; // Show max 4 items per page
+    for (uint8_t j = 0; j < itemsToShow; j++) {
+      uint8_t idx = startIdx + j;
+      if (idx >= menu_len) break;
+      sprintf(display_str, "%s %s", (tempOpt == idx) ? ">" : " ", toDraw[idx].c_str());
       int y = PADDING + (j * ROW_SIZE / 2) + 20;
       canvas_main.drawString(display_str, 0, y);
     }

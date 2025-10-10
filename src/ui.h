@@ -53,3 +53,4 @@ bool getBoolInput(String tittle, String desc, bool defaultValue);
 int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uint8_t prevMenuID, uint8_t prevOpt);
 void IRAM_ATTR handleInterrupt();
 void debounceDelay();
+void esp_will_beg_for_its_life();
