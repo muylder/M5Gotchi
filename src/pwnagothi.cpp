@@ -149,14 +149,18 @@ void pwnagothiLoop(){
             return;
         }
 
-        if(wifiCheckInt < WiFi.scanComplete()){
+        if(wifiCheckInt <= WiFi.scanComplete()){
             logMessage("Vector name filled: " + WiFi.SSID(wifiCheckInt));
         }
         else{
             pwnagothiScan = true;
             return;
         }
-
+        if(WiFi.SSID(wifiCheckInt) == ""){
+            logMessage("SSID empty, skipping");
+            wifiCheckInt++;
+            return;
+        }
         attackVector = WiFi.SSID(wifiCheckInt);
         setTargetAP(WiFi.BSSID(wifiCheckInt));
         logMessage("Status: wifiCheckInt: " + String(wifiCheckInt) + " of " + String(WiFi.scanComplete()));
@@ -183,13 +187,17 @@ void pwnagothiLoop(){
 
         setMood(1, "(Y_Y)" , "I'm looking inside you " + attackVector + "...");
         updateUi(true, false);
-
+        clearClients();
         esp_wifi_set_channel(WiFi.channel(wifiCheckInt), WIFI_SECOND_CHAN_NONE);
-        uint8_t currentCount = SnifferGetClientCount();
+        delay(50);
+        logMessage("Set ESP32 to channel: " + String(WiFi.channel(wifiCheckInt)));
+        
         setMac(WiFi.BSSID(wifiCheckInt));
         uint8_t targetChanel = set_target_channel(attackVector.c_str());
         initClientSniffing();
-
+        //uint8_t currentCount = SnifferGetClientCount();
+        logMessage("Set target mac to: " + WiFi.BSSIDstr(wifiCheckInt));
+        logMessage("Set target channel to: " + String(targetChanel));
         String clients[50];
         int clientLen = 0;
         unsigned long startTime = millis();
@@ -223,7 +231,6 @@ void pwnagothiLoop(){
                     logMessage("WiFi BSSID is: " + apBssid);
                     logMessage("Client BSSID is: " + clients[selectedClient]);
                     updateUi(true, false);
-                    delay(pwnagotchi.deauth_packet_delay);
                     esp_wifi_set_promiscuous(false);
                     // For now, break out of the loop
                     break;
@@ -267,7 +274,7 @@ void pwnagothiLoop(){
 
         while(true){
             SnifferLoop();
-            if (SnifferGetClientCount() > currentCount) { //Eapol count
+            if (SnifferGetClientCount() > 0) { //Eapol count
                 while (SnifferPendingPackets() > 0) {
                     SnifferLoop();
                     updateUi(true, false);

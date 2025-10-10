@@ -29,10 +29,14 @@ void initM5() {
 
 void setup() {
   Serial.begin(115200);
-  initM5();
-  initUi();
   WiFi.mode(WIFI_MODE_STA);
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
+  initM5();
+  initVars();
+  M5.Display.setBrightness(brightness);
+  initColorSettings();
+  initUi();
+  preloadMoods();
   if(initVars()){}
   else{
     #ifndef BYPASS_SD_CHECK
@@ -40,9 +44,6 @@ void setup() {
     while(true){delay(10);}
     #endif
   }
-  initColorSettings();
-  M5.Display.setBrightness(brightness);
-  preloadMoods();
   wakeUp();
   #ifdef LITE_VERSION
   #ifndef SKIP_AUTO_UPDATE
@@ -96,7 +97,6 @@ void loop() {
   unsigned long currentMillis = millis();
   M5.update();
   M5Cardputer.update();
-  sleepFunction();
   updateUi(true);
   if(!pwnagothiMode)  {
     if (currentMillis >= interval) {

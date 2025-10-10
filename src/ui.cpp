@@ -221,8 +221,8 @@ bool apMode;
 String loginCaptured = "";
 String passCaptured = "";
 bool cloned;
-uint16_t bg_color_rgb565;
-uint16_t tx_color_rgb565;
+uint16_t bg_color_rgb565 ;//= TFT_WHITE;
+uint16_t tx_color_rgb565 ;//= TFT_BLACK;
 bool sleep_mode = false;
 SemaphoreHandle_t buttonSemaphore;
 
@@ -323,21 +323,17 @@ uint8_t returnBrightness(){return currentBrightness;}
 #ifndef LITE_VERSION
 
 bool toggleMenuBtnPressed() {
-  delay(10);
   return (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('`')));
 }
 
 bool isOkPressed() {
-  delay(10);
   return (keyboard_changed && M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER));
 }
 
 bool isNextPressed() {
-  delay(10);
   return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('.') );
 }
 bool isPrevPressed() {
-  delay(10);
   return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(';'));
 }
 
@@ -351,6 +347,7 @@ void updateUi(bool show_toolbars, bool triggerPwnagothi) {
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}               
   if (toggleMenuBtnPressed()) {
+    debounceDelay();
     if(pwnagothiMode){
       return;
     }
@@ -489,6 +486,8 @@ void drawMood(String face, String phrase) {
     uint16_t bg = bg_color_rgb565;
     uint16_t fg = tx_color_rgb565;
     canvas_main.fillSprite(bg);
+    canvas_main.setTextColor(fg, bg);
+    canvas_main.setColor(fg);
     canvas_main.setTextSize(1.5);
     canvas_main.setTextDatum(top_left);
     canvas_main.setCursor(3, 10);
@@ -521,10 +520,10 @@ void drawMood(String face, String phrase) {
 
 void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool isCritical) {
   appRunning = true;
+  debounceDelay();
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
-    if(canBeQuit){delay(100);}
     canvas_main.fillScreen(bg_color_rgb565);
     canvas_main.setTextColor(tx_color_rgb565);
     canvas_main.clear(bg_color_rgb565);
@@ -542,7 +541,7 @@ void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool 
       canvas_main.setTextSize(1);
       canvas_main.drawString("To exit press OK", canvas_center_x, canvas_h * 0.9);
 
-        sleepFunction();
+        ;
         drawBottomCanvas();
         pushAll();
         M5.update();
@@ -572,14 +571,23 @@ void runApp(uint8_t appID){
   menu_current_page = 1;
   menuID = 0; 
   if(appID){
-    if(appID == 1){drawMenuList( wifi_menu , 2, 6);}
+    if(appID == 1){
+      debounceDelay();
+      drawMenuList( wifi_menu , 2, 6);
+    }
     #ifdef USE_EXPERIMENTAL_APPS
     if(appID == 2){drawMenuList(bluetooth_menu, 3, 6);}
     if(appID == 3){drawMenuList(IR_menu, 4, 5 );}
     #endif
-    if(appID == 4){drawMenuList(pwngotchi_menu, 5 , 5);}
+    if(appID == 4){
+      debounceDelay();
+      drawMenuList(pwngotchi_menu, 5 , 5);
+    }
     if(appID == 5){drawInfoBox("ERROR", "not implemented", "" ,  true, true);}
-    if(appID == 6){drawMenuList(settings_menu ,6  , 14);}
+    if(appID == 6){
+      debounceDelay();
+      drawMenuList(settings_menu ,6  , 14);
+    }
     if(appID == 7){}
     if(appID == 8){}
     if(appID == 9){}
@@ -595,6 +603,7 @@ void runApp(uint8_t appID){
     if(appID == 19){}
     if(appID == 20){
       WiFi.mode(WIFI_STA);
+      drawInfoBox("Info", "Scanning for wifi...", "Please wait", false, false);
       int numNetworks = WiFi.scanNetworks();
       String wifinets[20];
       if (numNetworks == 0) {
@@ -639,13 +648,13 @@ void runApp(uint8_t appID){
           String uinput = userInput("SSID?", "Enter wifi name for ap.", 30);
           startPortal(uinput);
         }
-        delay(100);
+        debounceDelay();
         apMode = true;
         while(true){
           updatePortal();
           M5.update();
           M5Cardputer.update();
-          sleepFunction();
+          ;
           Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
           if(!loginCaptured.equals("") && !passCaptured.equals("")){
             drawInfoBox("New victim!", loginCaptured, passCaptured, false, false);
@@ -668,7 +677,7 @@ void runApp(uint8_t appID){
         String ssidMenu[] = {"Funny SSID", "Broken SSID", "Rick Roll", "Make your own :)"};
         M5.update();
         M5Cardputer.update();
-        delay(10);
+        debounceDelay();
         uint8_t ssidChoice = drawMultiChoice("Select list", ssidMenu, 4 , 2 , 2);
         if(ssidChoice==0){
           broadcastFakeSSIDs( funny_ssids, 48, sound);
@@ -762,9 +771,9 @@ void runApp(uint8_t appID){
             drawInfoBox("Searching...", "Found "+ String(clientLen)+ " clients", "ENTER for next step", false, false);
             updateM5();
             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-            sleepFunction();
+            ;
             if(status.enter){
-              delay(150);
+              debounceDelay();
               esp_wifi_set_promiscuous(false);
               break;
             }
@@ -788,7 +797,7 @@ void runApp(uint8_t appID){
             }
             updateM5();
             Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-            sleepFunction();
+            ;
             if(status.enter){
               break;
             }
@@ -832,7 +841,7 @@ void runApp(uint8_t appID){
             M5Cardputer.update();  
             keyboard_changed = M5Cardputer.Keyboard.isChange();
             if(keyboard_changed){Sound(10000, 100, sound);}
-            sleepFunction();
+            ;
             drawTopCanvas();
             drawBottomCanvas();
             canvas_main.clear(bg_color_rgb565);
@@ -893,6 +902,7 @@ void runApp(uint8_t appID){
           pushAll();
           uint8_t line;
           while(true){
+            debounceDelay();
             M5.update();
             M5Cardputer.update();  
             keyboard_changed = M5Cardputer.Keyboard.isChange();
@@ -904,9 +914,8 @@ void runApp(uint8_t appID){
                 menuID = 0;
                 return;
               }
-              delay(250);
             }
-            sleepFunction();
+            ;
             drawTopCanvas();
             drawBottomCanvas();
             canvas_main.clear(bg_color_rgb565);
@@ -1050,7 +1059,7 @@ void runApp(uint8_t appID){
     }
     if(appID == 42){
       String selection[] = {"Off", "On"};
-      delay(50);
+      debounceDelay();
       sound = drawMultiChoice("Sound", selection, 2, 6, 2);
       if(saveSettings()){
         menuID = 0;
@@ -1061,43 +1070,41 @@ void runApp(uint8_t appID){
     }
     if(appID == 43){
       WiFi.mode(WIFI_STA);
-      if(savedApSSID && savedAPPass){
+      if(!(savedApSSID.equals("") && savedAPPass.equals(""))){
         WiFi.begin(savedApSSID, savedAPPass);
         uint8_t counter;
+        counter = 0;
         while (counter<=10 && !WiFi.isConnected()) {
           delay(1000);
           drawInfoBox("Connecting", "Please wait...", "You will be soon redirected ", false, false);
           counter++;
         }
-        counter = 0;
-        }
+        
         if(WiFi.isConnected()){
           drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
           menuID = 0;
           return;
         }
-      
+      }
       int numNetworks = WiFi.scanNetworks();
-      String wifinets[20];
+      String wifinets[50];
       if (numNetworks == 0) {
         drawInfoBox("Info", "No wifi nearby", "Abort.", true, false);
         menuID = 0;
         return;
-      } else {
+      }
+      else {
         // Przechodzimy przez wszystkie znalezione sieci i zapisujemy ich nazwy w liście
         for (int i = 0; i < numNetworks; i++) {
-        String ssid = WiFi.SSID(i);
-        
-        wifinets[i] = String(ssid);
-        logMessage(wifinets[i]);
+          String ssid = WiFi.SSID(i);
+          wifinets[i] = String(ssid);
+          logMessage(wifinets[i]);
         }
       }
       uint8_t wifisel = drawMultiChoice("Select WIFI network:", wifinets, numNetworks, 6, 3);
-      //String ssid = userInput("Wifi SSID", "Enter wifi name to connect.", 30);
       String password = userInput("Password", "Enter wifi password" , 30);
       WiFi.begin(WiFi.SSID(wifisel), password);
-      savedApSSID = WiFi.SSID(wifisel);
-      savedAPPass = password;
+      
       uint8_t counter;
       while (counter<=10 && !WiFi.isConnected()) {
         delay(1000);
@@ -1107,6 +1114,8 @@ void runApp(uint8_t appID){
       counter = 0;
       if(WiFi.isConnected()){
         drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+        savedApSSID = WiFi.SSID(wifisel);
+        savedAPPass = password;
         if(saveSettings()){
           menuID = 0;
           return;
@@ -1238,12 +1247,10 @@ void runApp(uint8_t appID){
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
         }
       } else if (themeChoice == 2) {
-        delay(150);
         drawInfoBox("Custom Theme", "Set background color with picker", "Make sure to see text!", false, false);
         delay(5000);
         String customBg = colorPickerUI(false, "#000000ff");
         if (customBg == "exited") return;
-        delay(150);
         drawInfoBox("Custom Theme", "Set text color with picker", "Make sure to see text!", false, false);
         delay(5000);
         String customTx = colorPickerUI(true, customBg);
@@ -1398,6 +1405,7 @@ void runApp(uint8_t appID){
       }
     }
     if(appID == 55){
+      debounceDelay();
       drawMenuList(wpasec_menu, 7, 3);
     }
     if(appID == 56){
@@ -1405,7 +1413,7 @@ void runApp(uint8_t appID){
     }
     if(appID == 57){
       if(initPersonality()){
-        delay(500);
+        debounceDelay();
         }
       else{
         drawInfoBox("Error", "Can't load personality", "Check SD card!", true, false);
@@ -1575,7 +1583,7 @@ void runApp(uint8_t appID){
 int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
   uint16_t number = 0;
   appRunning = true;
-  delay(500);
+  debounceDelay();
   while (true){
     drawTopCanvas();
     drawBottomCanvas();
@@ -1592,7 +1600,7 @@ int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
     pushAll();
     M5.update();
     M5Cardputer.update();
-    sleepFunction();
+    ;
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
@@ -1603,7 +1611,7 @@ int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
       }
       if(i>='0' && i<='9'){
         number = number * 10 + (i - '0');
-        delay(250);
+        debounceDelay();
       }
     }
     if (status.del) {
@@ -1611,13 +1619,13 @@ int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
       if (number > 0) {
           number = number / 10;
       }
-      delay(250);
+      debounceDelay();
     }
     if (status.enter) {
       if(number > maxNumber){
         drawInfoBox("Error", "Number can't be higher than " + String(maxNumber), "", true, false);
         number = 0;
-        delay(500);
+        debounceDelay();
       }
       else{
         appRunning = false;
@@ -1631,7 +1639,7 @@ int16_t getNumberfromUser(String tittle, String desc, uint16_t maxNumber){
 bool getBoolInput(String tittle, String desc, bool defaultValue){
   bool toReturn = defaultValue;
   appRunning = true;
-  delay(500);
+  debounceDelay();
   while (true){
     drawTopCanvas();
     drawBottomCanvas();
@@ -1653,22 +1661,21 @@ bool getBoolInput(String tittle, String desc, bool defaultValue){
     pushAll();
     M5.update();
     M5Cardputer.update();
-    sleepFunction();
+    ;
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     for(auto i : status.word){
       if(i=='`' && status.fn){
         appRunning = false;
+        debounceDelay();
         return defaultValue;
       }
       if(i=='t'){//'y'){ replace with t for relase - my cardputer keyboard has broken t key
         toReturn = true;
-        delay(250);
       }
       if(i=='f'){
         toReturn = false;
-        delay(250);
       }
     }
     if (status.enter) {
@@ -1717,7 +1724,7 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
   uint8_t temp = 0;
   String textTyped;
   appRunning = true;
-  delay(500);
+  debounceDelay();
   //bool loop = 1;
   while (true){
     drawTopCanvas();
@@ -1731,7 +1738,7 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
     canvas_main.drawString(desc, canvas_center_x, canvas_h * 0.9);
     M5.update();
     M5Cardputer.update();
-    sleepFunction();
+    ;
     //auto i;
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}    
@@ -1742,12 +1749,12 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
       }
       textTyped = textTyped + i;
       temp ++;
-      delay(250);
+      debounceDelay();
     }
     if (status.del && temp >=1) {
       textTyped.remove(textTyped.length() - 1);
       temp --;
-      delay(250);
+      debounceDelay();
     }
     if (status.enter) {
       break;
@@ -1757,7 +1764,7 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
       drawInfoBox("Error", "Can't type more than " + String(maxLenght), " characters" , true, false);
       textTyped.remove(textTyped.length() - 1);
       temp --;
-      delay(100);
+      debounceDelay();
     }
     canvas_main.clear(bg_color_rgb565);
     canvas_main.setTextSize(3);
@@ -1788,7 +1795,7 @@ String multiplyChar(char toMultiply, uint8_t literations){
 
 bool drawQuestionBox(String tittle, String info, String info2, String label) {
   appRunning = true;
-  delay(100);
+  debounceDelay();
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
@@ -1809,7 +1816,7 @@ bool drawQuestionBox(String tittle, String info, String info2, String label) {
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}    
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-    sleepFunction();
+    ;
 
     
     for(auto i : status.word){
@@ -1831,7 +1838,7 @@ bool drawQuestionBox(String tittle, String info, String info2, String label) {
 }
 
 int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t prevMenuID, uint8_t prevOpt) {
-  delay(100);
+  debounceDelay();
   uint8_t tempOpt = 0;
   menu_current_opt = 0;
   menu_current_page = 1;
@@ -1845,7 +1852,7 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-    sleepFunction();
+    ;
 
     canvas_main.clear(bg_color_rgb565);
     canvas_main.fillSprite(bg_color_rgb565); //Clears main display
@@ -1919,7 +1926,7 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
 }
 
 int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uint8_t prevMenuID, uint8_t prevOpt) {
-  delay(100);
+  debounceDelay();
   uint8_t tempOpt = 0;
   menu_current_opt = 0;
   menu_current_page = 1;
@@ -1933,7 +1940,7 @@ int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uin
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-    sleepFunction();
+    ;
 
     canvas_main.clear(bg_color_rgb565);
     canvas_main.fillSprite(bg_color_rgb565); //Clears main display
@@ -2009,25 +2016,26 @@ int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uin
 String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryLen){
   uint8_t writeID = 0;
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
-  String* listToReturn;
+  String* listToReturn = new String[50];
   if(maxEntryLen > 12){maxEntryLen = 12;}
-  delay(100);
+  debounceDelay();
   while(true){
-    sleepFunction();
+    ;
     uint8_t choice = drawMultiChoice(windowName, list, 4 , 0, 0);
     if (choice==0){
       String tempText = userInput("Add value:", "", maxEntryLen);
-      if(addln){
-        listToReturn[writeID] = tempText + "\n";
-        writeID++;
-      }
-      else{
+      // if(addln){
+      //   listToReturn[writeID] = tempText + "\n";
+      //   writeID++;
+      // }
+      // else{
         listToReturn[writeID] = tempText;
         writeID++;
-      }
+      //}
+      logMessage("Added to list: " + tempText);
     }
     else if (choice==2){
-      delay(100);
+      debounceDelay();
       return listToReturn;
     }
     else if (choice==1){
@@ -2035,24 +2043,23 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
       if (idOfItemToRemove == -1) {
         continue;
       }
-      else
-      {// Shift items up to remove the selected one
-      for (uint8_t i = idOfItemToRemove; i < writeID - 1; i++) {
-        list[i] = list[i + 1];
-      }
-      list[writeID - 1] = "";
-      writeID--;}
+      else{// Shift items up to remove the selected one
+        for (uint8_t i = idOfItemToRemove; i < writeID - 1; i++) {
+          list[i] = list[i + 1];
+        }
+        list[writeID - 1] = "";
+        writeID--;}
     }
     else if (choice==3){
-      delay(100);
+      debounceDelay();
       while(true){
         if (writeID == 0) {
-          drawInfoBox("Info", "Whitelist is empty", "Nothing to preview.", true, false);
+          drawInfoBox("Info", "List is empty", "Nothing to preview.", true, false);
           break;
         }
         drawTopCanvas();
         drawBottomCanvas();
-        sleepFunction();
+        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2224,7 +2231,6 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
   }
   keyboard_changed = M5Cardputer.Keyboard.isChange();
   if(keyboard_changed){Sound(10000, 100, sound);}
-  sleepFunction();
 
   // Handle input and app execution
   M5.update();
@@ -2241,12 +2247,14 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
     return;
   }
   if (M5Cardputer.Keyboard.isKeyPressed('.')){
-    delay(100); // Small delay to avoid too fast increments
+    delay(50); // Small delay to avoid too fast increments
     nextCount++;
+    delay(50);
   }
   if (M5Cardputer.Keyboard.isKeyPressed(';')){
-    delay(100); // Small delay to avoid too fast increments
+    delay(50); // Small delay to avoid too fast increments
     prevCount++;
+    delay(50);
   }
 
   // Move selection by number of keypresses detected
@@ -2265,7 +2273,7 @@ void logVictim(String login, String pass){
 }
 
 void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String wifiChanel){
-  delay(100);
+  debounceDelay();
   while(true){
     drawTopCanvas();
     drawBottomCanvas();
@@ -2283,7 +2291,7 @@ void drawWifiInfoScreen(String wifiName, String wifiMac, String wifiRRSI, String
     pushAll();
     updateM5();
     keyboard_changed = M5Cardputer.Keyboard.isChange();
-    sleepFunction();
+    ;
     if(keyboard_changed){Sound(10000, 100, sound);} 
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
     for(auto i : status.word){
@@ -2316,37 +2324,18 @@ inline void updateM5(){
 }
 
 
-
-void sleepFunction(){
-  // if(M5.BtnA.isPressed()){
-  //   if(sleep_mode == false){
-  //     delay(250);
-  //     M5.Lcd.setBrightness(0);
-  //     M5.Display.fillScreen(tx_color_rgb565);
-  //     sleep_mode = true;
-  //     return;
-  //   }
-  //   if(sleep_mode == true){
-  //     delay(250);
-  //     M5.Lcd.setBrightness(brightness);
-  //     initUi();
-  //     sleep_mode = false;
-  //   }
-  // }
-}
-
 #ifndef LITE_VERSION
 
 void editWhitelist(){
   uint16_t writeID = 0;
   String* whitelist = parseWhitelist(writeID);
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
-  delay(100);
+  debounceDelay();
   while(true){
     initVars();
     logMessage("WRITE ID: " + String(writeID));
     String* listToReturn = parseWhitelist(writeID);
-    sleepFunction();
+    ;
     s8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
     if (choice==0){
       String tempText = userInput("Add value:", "", 12);
@@ -2374,7 +2363,7 @@ void editWhitelist(){
       }
     }
     else if (choice==3){
-      delay(100);
+      debounceDelay();
       while(true){
         // Exception handler: if list is empty, show info and break
         if (writeID == 0) {
@@ -2383,7 +2372,7 @@ void editWhitelist(){
         }
         drawTopCanvas();
         drawBottomCanvas();
-        sleepFunction();
+        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2548,13 +2537,13 @@ int brightnessPicker(){
     if (status.fn) {
       for (auto k : status.word) {
         if (k == '`' ) {
-          delay(100);
+          debounceDelay();
           return brightness;
         }
       }
     }
     if (status.enter) {
-      delay(100);
+      debounceDelay();
       return brightness;
     }
     M5.Display.setBrightness(brightness);
@@ -2562,3 +2551,16 @@ int brightnessPicker(){
 }
 
 #endif
+
+void debounceDelay(){
+  while(M5Cardputer.Keyboard.isPressed() != 0){
+    M5.update();
+    M5Cardputer.update();
+    delay(10);
+  }
+  M5Cardputer.update();
+  M5.update();
+  delay(40);
+  M5Cardputer.update();
+  M5.update();
+}

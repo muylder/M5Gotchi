@@ -79,7 +79,7 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     uint8_t fsubtype = (fc >> 4) & 0xF;
 
     // ---- Detect beacon ----
-    if (ftype == 0 && fsubtype == 8) { // mgmt + beacon
+    if (ftype == 0 && fsubtype == 8 && !beaconDetected) { // mgmt + beacon
         if (targetAPSet) {
             // BSSID in beacon frame is addr3 at offset 16..21
             const uint8_t *bssid = &payload[16];

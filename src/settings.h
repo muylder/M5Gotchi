@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#define CURRENT_VERSION "0.4"
+#define CURRENT_VERSION "0.4.1"
 #define NORMAL_JSON_URL "https://devsur11.github.io/M5Gotchi/firmware/firmware.json"
 #define LITE_JSON_URL   "https://devsur11.github.io/M5Gotchi/firmware/lite.json"
 #define TEMP_DIR        "/temp"
