@@ -23,6 +23,7 @@ String wpa_sec_api_key = "";
 bool lite_mode_wpa_sec_sync_on_startup = false;
 bool sd_logging = false;
 bool toogle_pwnagothi_with_gpio0 = false;
+String lastPwnedAP = "";
 
 // struct personality{
 //     uint16_t nap_time;
@@ -52,10 +53,10 @@ personality pwnagotchi = {
     5000,   // delay_after_no_networks_found
     1000,   // delay_after_attack_fail
     3000,   // delay_after_successful_attack
-    80,     // deauth_packets_sent
+    150,     // deauth_packets_sent
     50,    // delay_after_deauth
     50,    // delay_after_picking_target
-    3000,   // delay_before_switching_target
+    1000,   // delay_before_switching_target
     100,  // delay_after_client_found
     true,   // sound_on_events
     true,   // deauth_on

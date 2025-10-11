@@ -460,7 +460,7 @@ void drawBottomCanvas() {
   canvas_bot.setTextDatum(top_left);
   uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
-  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures), 3, 5);
+  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures) + " (" + lastPwnedAP + ")", 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";

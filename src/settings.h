@@ -84,3 +84,4 @@ extern personality pwnagotchi;
 extern bool sd_logging;
 extern bool toogle_pwnagothi_with_gpio0;
 extern bool lite_mode_wpa_sec_sync_on_startup;
+extern String lastPwnedAP;
