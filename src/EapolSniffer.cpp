@@ -60,7 +60,7 @@ const uint8_t* beaconFrame;
 uint16_t beaconFrameLen = 0;
 std::map<String, APFileContext> apFiles;
 bool targetAPSet = false;
-uint8_t targetBSSID[6] = {0};
+uint8_t targetBSSID[6];
 
 void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (type != WIFI_PKT_MGMT && type != WIFI_PKT_DATA && type != WIFI_PKT_CTRL) {
@@ -77,6 +77,10 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     uint16_t fc = payload[0] | (payload[1] << 8);
     uint8_t ftype    = (fc >> 2) & 0x3;   // 0=mgmt,1=ctrl,2=data
     uint8_t fsubtype = (fc >> 4) & 0xF;
+
+    // ---- Extract BSSID from beacon ----
+    // In beacon frame: BSSID = addr3 = offset 16..21
+    const uint8_t *beaconBSSID = &beaconFrame[16];
 
     // ---- Detect beacon ----
     if (ftype == 0 && fsubtype == 8 && !beaconDetected) { // mgmt + beacon
@@ -106,9 +110,7 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     // ---- Only continue if beacon captured ----
     if (!beaconDetected) return;
 
-    // ---- Extract BSSID from beacon ----
-    // In beacon frame: BSSID = addr3 = offset 16..21
-    const uint8_t *beaconBSSID = &beaconFrame[16];
+    
 
     // ---- Look for EAPOL ----
     if (len >= 32) {
@@ -119,8 +121,10 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
             // ---- Extract source/dest BSSID to match ----
             // In data frames: addr1 = dst, addr2 = src, addr3 = BSSID
             const uint8_t *pktBSSID = &payload[16];
+            logMessage("EAPOL Source:" + macToString(pktBSSID));
 
             if (memcmp(pktBSSID, beaconBSSID, 6) != 0) {
+                logMessage("EAPOL Detected, but bssids do not match.");
                 return; // not our AP
             }
 
@@ -155,11 +159,13 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 void setTargetAP(uint8_t* bssid) {
+    logMessage("Target for sniffer set to: " + macToString(bssid));
     memcpy(targetBSSID, bssid, 6);
     targetAPSet = true;
 }
 
 void clearTargetAP() {
+    logMessage("Target for sniffer cleared");
     memset(targetBSSID, 0, 6);
     targetAPSet = false;
 }

@@ -460,7 +460,8 @@ void drawBottomCanvas() {
   canvas_bot.setTextDatum(top_left);
   uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
-  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures) + " (" + lastPwnedAP + ")", 3, 5);
+  String shortWifiName = lastPwnedAP.length() > 7 ? lastPwnedAP.substring(0, 7) + "..." : lastPwnedAP;
+  canvas_bot.drawString("PWND: " + String(captures) + "/" + String(allTimeCaptures) + (shortWifiName.length() > 0 ? " ( " + shortWifiName + " )" : ""), 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";
@@ -980,7 +981,6 @@ void runApp(uint8_t appID){
         if(answear){
           drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
           if(pwnagothiBegin()){
-            drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
             pwnagothiMode = true;
           }
           else{
@@ -1074,22 +1074,7 @@ void runApp(uint8_t appID){
     }
     if(appID == 43){
       WiFi.mode(WIFI_STA);
-      if(!(savedApSSID.equals("") && savedAPPass.equals(""))){
-        WiFi.begin(savedApSSID, savedAPPass);
-        uint8_t counter;
-        counter = 0;
-        while (counter<=10 && !WiFi.isConnected()) {
-          delay(1000);
-          drawInfoBox("Connecting", "Please wait...", "You will be soon redirected ", false, false);
-          counter++;
-        }
-        
-        if(WiFi.isConnected()){
-          drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
-          menuID = 0;
-          return;
-        }
-      }
+      drawInfoBox("Scanning...", "Scanning for networks...", "Please wait", false, false);
       int numNetworks = WiFi.scanNetworks();
       String wifinets[50];
       if (numNetworks == 0) {
@@ -1101,6 +1086,21 @@ void runApp(uint8_t appID){
         // Przechodzimy przez wszystkie znalezione sieci i zapisujemy ich nazwy w liście
         for (int i = 0; i < numNetworks; i++) {
           String ssid = WiFi.SSID(i);
+          logMessage(WiFi.SSID(i) + " =? " + savedApSSID);
+          if(WiFi.SSID(i) == (savedApSSID)){
+            WiFi.begin(savedApSSID, savedAPPass);
+            uint8_t counter;
+            while (counter<=10 && !WiFi.isConnected()) {
+              delay(1000);
+              drawInfoBox("Connecting", "Connecting to " + savedApSSID, "You'll soon be redirected ", false, false);
+              counter++;
+            }
+            counter = 0;
+            if(WiFi.isConnected()){
+              drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+              return;
+            }
+          }
           wifinets[i] = String(ssid);
           logMessage(wifinets[i]);
         }
@@ -1455,7 +1455,7 @@ void runApp(uint8_t appID){
           return;
         }
         else if(choice >= 14){
-          bool valueToSet = getBoolInput(personality_options[choice], "Press y or n, then ENTER", false);
+          bool valueToSet = getBoolInput(personality_options[choice], "Press t or f, then ENTER", false);
           switch (choice) {
             case 14:
               pwnagotchi.sound_on_events = valueToSet;
