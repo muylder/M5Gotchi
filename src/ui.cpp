@@ -2346,7 +2346,7 @@ void editWhitelist(){
     ;
     s8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
     if (choice==0){
-      String tempText = userInput("Add value:", "", 12);
+      String tempText = userInput("Add value:", "", 20);
       addToWhitelist(tempText);
       writeID++;
     }

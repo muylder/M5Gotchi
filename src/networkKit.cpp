@@ -223,6 +223,7 @@ void initClientSniffing() {
 }
 
 void stopClientSniffing(){
+  clearClients();
   esp_wifi_set_promiscuous(false);
   WiFi.mode(WIFI_MODE_STA);
 }
@@ -349,7 +350,7 @@ void clearClients() {
 }
 
 uint8_t set_target_channel(const char* target_ssid) {
-    int networks = WiFi.scanNetworks();
+    int networks = WiFi.scanComplete();
     for (int i = 0; i < networks; i++) {
         if (strcmp(WiFi.SSID(i).c_str(), target_ssid) == 0) {
             target_channel = WiFi.channel(i);

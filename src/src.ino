@@ -147,7 +147,7 @@ void setup() {
   #endif
   #endif
 
-  if(pwnagothiMode) {
+  if(pwnagothiModeEnabled) {
     logMessage("Pwnagothi mode enabled");
     pwnagothiBegin();
   } else {
