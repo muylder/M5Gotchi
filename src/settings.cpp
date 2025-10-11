@@ -286,9 +286,7 @@ bool initVars() {
         if (config["whitelist"].is<const char*>()) whitelist = String(config["whitelist"].as<const char*>());
         else configChanged = true;
 
-        if (config["auto_mode_on_startup"].is<bool>()) {
-            pwnagothiMode = config["auto_mode_on_startup"];
-            pwnagothiModeEnabled = config["auto_mode_on_startup"];
+        if (config["auto_mode_on_startup"].is<bool>()) {pwnagothiModeEnabled = config["auto_mode_on_startup"];
         } else configChanged = true;
 
         if (config["bg_color"].is<const char*>()) bg_color = String(config["bg_color"].as<const char*>());

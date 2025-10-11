@@ -2334,16 +2334,17 @@ inline void updateM5(){
 
 #ifndef LITE_VERSION
 
+#include <vector>
+
 void editWhitelist(){
-  uint16_t writeID = 0;
-  String* whitelist = parseWhitelist(writeID);
+  std::vector<String> whitelist = parseWhitelist();
+  uint16_t writeID = whitelist.size();
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
   debounceDelay();
   while(true){
     initVars();
     logMessage("WRITE ID: " + String(writeID));
-    String* listToReturn = parseWhitelist(writeID);
-    ;
+    std::vector<String> listToReturn = parseWhitelist();
     s8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
     if (choice==0){
       String tempText = userInput("Add value:", "", 20);
@@ -2356,7 +2357,10 @@ void editWhitelist(){
       ESP.restart();
     }
     else if (choice==1){
-      s16_t idOfItemToRemove = drawMultiChoice("Remove element", listToReturn, writeID, 0, 0);
+      // Convert vector to array for drawMultiChoice
+      String tempArr[listToReturn.size()];
+      for (size_t i = 0; i < listToReturn.size(); ++i) tempArr[i] = listToReturn[i];
+      s16_t idOfItemToRemove = drawMultiChoice("Remove element", tempArr, writeID, 0, 0);
       if(idOfItemToRemove == -1){
         continue;
       }
@@ -2367,7 +2371,7 @@ void editWhitelist(){
           writeID = writeID - 1;
         }
         // Re-parse whitelist to update local array after deletion
-        listToReturn = parseWhitelist(writeID);
+        listToReturn = parseWhitelist();
       }
     }
     else if (choice==3){
@@ -2380,7 +2384,6 @@ void editWhitelist(){
         }
         drawTopCanvas();
         drawBottomCanvas();
-        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2392,7 +2395,10 @@ void editWhitelist(){
         M5.update();
         M5Cardputer.update();
         if(isOkPressed()){break;}
-        drawList(listToReturn, writeID);
+        // Convert vector to array for drawList
+        String tempArr[listToReturn.size()];
+        for (size_t i = 0; i < listToReturn.size(); ++i) tempArr[i] = listToReturn[i];
+        drawList(tempArr, writeID);
         pushAll();
         drawMenu();
       }

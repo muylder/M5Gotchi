@@ -1,10 +1,9 @@
 #include "Arduino.h"
-
+#include <vector>
 #pragma once
 
-void setWhitelistFromArray(String* arr);
-void addToWhitelist(String valueToAdd);
-String* parseWhitelist(uint16_t& outCount);
+void addToWhitelist(const String &valueToAdd);
+std::vector<String> parseWhitelist();
 void pwnagothiLoop();
 bool pwnagothiBegin();
 void delayWithUI(uint16_t delayTime);

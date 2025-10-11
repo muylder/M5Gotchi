@@ -7,6 +7,7 @@
 #include "networkKit.h"
 #include "EapolSniffer.h"
 #include "ui.h"
+#include <vector>
 
 String pwnagothiWhitelist[30];
 String pwnagothiMacWhitelist[30];
@@ -34,52 +35,87 @@ bool pwnagothiBegin(){
             if(i=='`'){
                 setMood(1, "(^_^)", "Pwnagothi mode cancelled");
                 updateUi(true, false);
-                delay(5000);
                 return false;
             }
         }
     }
     WiFi.scanNetworks(true, true);
     logMessage("Pwnagothi auto mode init!");
-    uint16_t trash;
-    parseWhitelist(trash);
+    parseWhitelist();
     pwnagothiMode = true;
     return true;
 }
 
-void addToWhitelist(String valueToAdd){
-    JsonDocument oldList;
-    deserializeJson(oldList, whitelist);
-    JsonDocument list;
-    JsonArray array = list.to<JsonArray>();
-    JsonArray oldArray = oldList.as<JsonArray>();
-    for(JsonVariant v : oldArray) {
-        array.add(String(v.as<const char*>()));
-    }
-    array.add(valueToAdd);
-    serializeJson(list, whitelist);
-    saveSettings();
-}
+// maximum entries we'll accept from the JSON whitelist to avoid OOM
+static const size_t MAX_WHITELIST = 200; // adjust to taste (30, 100, 200...)
 
-String* parseWhitelist(uint16_t& outCount){
-    static String result[20000];
-    outCount = 0;
+std::vector<String> parseWhitelist() {
+    // estimate JSON doc size. If whitelist can be large,
+    // increase this. But don't leave it unlimited.
+    const size_t estimatedJsonCapacity = 4096; // bytes, adapt if JSON is large
+    DynamicJsonDocument doc(estimatedJsonCapacity);
 
-    JsonDocument jsonWhitelist;
-    DeserializationError err = deserializeJson(jsonWhitelist, whitelist);
+    DeserializationError err = deserializeJson(doc, whitelist);
     if (err) {
-        logMessage("Failed to parse whitelist JSON");
-        return result;
+        logMessage(String("Failed to parse whitelist JSON: ") + err.c_str());
+        return std::vector<String>(); // empty vector
     }
 
-    JsonArray array = jsonWhitelist.as<JsonArray>();
-    for (JsonVariant v : array) {
-        if (outCount >= 30) break;
-        result[outCount++] = String(v.as<const char*>());
+    JsonArray arr = doc.as<JsonArray>();
+    size_t actualSize = arr.size();
+    if (actualSize > MAX_WHITELIST) {
+        logMessage(String("Whitelist contains ") + String(actualSize)
+                   + " entries; truncating to " + String(MAX_WHITELIST));
+        actualSize = MAX_WHITELIST;
+    }
+
+    std::vector<String> result;
+    result.reserve(actualSize); // reduce fragmentation / reallocation
+
+    size_t i = 0;
+    for (JsonVariant v : arr) {
+        if (i++ >= actualSize) break;
+        const char* s = v.as<const char*>();
+        if (s) result.emplace_back(String(s));
+        else result.emplace_back(String()); // keep index consistent
     }
 
     return result;
 }
+
+void addToWhitelist(const String &valueToAdd) {
+    const size_t cap = 4096;
+    DynamicJsonDocument oldDoc(cap);
+    DeserializationError err = deserializeJson(oldDoc, whitelist);
+    if (err) {
+        // treat as empty array if parse fails
+        oldDoc.to<JsonArray>();
+    }
+
+    JsonArray oldArr = oldDoc.as<JsonArray>();
+
+    // make new doc sized for old + one more (rough estimate)
+    DynamicJsonDocument newDoc(cap + 256);
+    JsonArray newArr = newDoc.to<JsonArray>();
+
+    size_t count = 0;
+    for (JsonVariant v : oldArr) {
+        if (count++ >= MAX_WHITELIST) break;
+        newArr.add(v.as<const char*>());
+    }
+
+    if (count < MAX_WHITELIST) {
+        newArr.add(valueToAdd.c_str());
+    } else {
+        logMessage("Whitelist at capacity, not adding: " + valueToAdd);
+    }
+
+    String out;
+    serializeJson(newDoc, out);
+    whitelist = out;
+    saveSettings();
+}
+
 
 void parseMacFromWhitelist() {
   WiFi.mode(WIFI_MODE_STA);  // ensure we can scan
@@ -116,7 +152,6 @@ void pwnagothiLoop(){
         setMood(1, "(<_>)", "Scanning..");
         updateUi(true, false);
         WiFi.scanNetworks();
-        delayWithUI(50);
         if((WiFi.scanComplete()) >= 0){
             wifiCheckInt = 0;
             pwnagothiScan = false;
@@ -124,7 +159,6 @@ void pwnagothiLoop(){
             setMood(1, "(*_*)", "Scan compleated proceding to attack!");
             updateUi(true, false);
             delayWithUI(100);
-            //return;
         }
     }
     else{
@@ -147,16 +181,14 @@ void pwnagothiLoop(){
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
         updateUi(true, false);
         delayWithUI(10);
-        uint16_t wSize;
-        String* whitelistParsed = parseWhitelist(wSize);
-        logMessage("Size of whiletist: " + String(sizeof(whitelistParsed)));
-        for(uint16_t i = 0; i<=wSize; i++){
-            logMessage("Whietlist check...");
-            if(whitelistParsed[i] == attackVector){
+        std::vector<String> whitelistParsed = parseWhitelist();
+        for (size_t i = 0; i < whitelistParsed.size(); ++i) {
+            logMessage("Whitelist check...");
+            if (whitelistParsed[i] == attackVector) {
+                // safe -> skip
                 setMood(1, "(x_x)", "Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
-                logMessage("(x_x) " + String("Well, ") + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
+                logMessage("(x_x) Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
                 updateUi(true, false);
-                delayWithUI(50);
                 wifiCheckInt++;
                 return;
             }
@@ -183,14 +215,14 @@ void pwnagothiLoop(){
         while(true){
             get_clients_list(clients, clientLen);
             if (millis() - startTime > 20000) { // 20 seconds timeout
-                setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
-                logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
+                setMood(1, "(~_~)", "Attack failed: Timeout waiting for client.");
+                logMessage("(~_~) Attack failed: Timeout waiting for client.");
                 SnifferEnd();
                 updateUi(true, false);
                 delay(70);
                 break;
             }
-            if(clients[i] != ""){
+            if(!clients[i].compareTo("")){
                 logMessage("Client count: " + String(clientLen));
                 setMood(1, "(d_b)", "I think that " + clients[i] + " doesn't need an internet..." );
                 logMessage("WiFi BSSIS is: " + WiFi.BSSIDstr(wifiCheckInt));
@@ -199,7 +231,6 @@ void pwnagothiLoop(){
                 updateUi(true, false);
                 delayWithUI(20);
                 stopClientSniffing();
-                esp_wifi_set_promiscuous(false);
                 break;
             }
             updateUi(true, false);
@@ -213,6 +244,9 @@ void pwnagothiLoop(){
         else{
             logMessage("Unknown error with deauth");
         }
+        setMood(1, "(@--@)", "Sniff, sniff... Looking for handshake..." );
+        logMessage("(@--@) Sniff, sniff... Looking for handshake...");
+        updateUi(true, false);
         unsigned long startTime1 = millis();
         SnifferBegin(targetChanel);
         while(true){
@@ -278,20 +312,5 @@ void removeItemFromWhitelist(String valueToRemove) {
     String newWhitelist;
     serializeJson(list, newWhitelist);
     whitelist = newWhitelist;
-    saveSettings();
-}
-
-void setWhitelistFromArray(String* arr) {
-    JsonDocument list;
-    JsonArray array = list.to<JsonArray>();
-    size_t len = 0;
-    // Calculate length by finding first empty string or hitting 30
-    while (arr[len].length() > 0) {
-        len++;
-    }
-    for (size_t i = 0; i < len; ++i) {
-        array.add(arr[i]);
-    }
-    serializeJson(list, whitelist);
     saveSettings();
 }
