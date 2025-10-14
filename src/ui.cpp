@@ -1051,6 +1051,7 @@ void runApp(uint8_t appID){
         }
         drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
         menuID = 0;
+        return;
     }
     if(appID == 41){
       brightnessPicker();
@@ -1098,6 +1099,7 @@ void runApp(uint8_t appID){
             counter = 0;
             if(WiFi.isConnected()){
               drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+              menuID = 0;
               return;
             }
           }
@@ -1203,11 +1205,12 @@ void runApp(uint8_t appID){
     }
     if(appID == 49){
       String options[] = {"Enable", "Disable", "Back"};
-      int choice = drawMultiChoice("Skip EAPOL check", options, 3, 6, 0);
+      int choice = drawMultiChoice("EAPOL integrity check", options, 3, 6, 0);
       if (choice == 0) {
         skip_eapol_check = false;
         if (saveSettings()) {
           drawInfoBox("Success", "EAPOL check enabled", "", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
@@ -1216,6 +1219,7 @@ void runApp(uint8_t appID){
         skip_eapol_check = true;
         if (saveSettings()) {
           drawInfoBox("Success", "EAPOL check disabled", "", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
@@ -1225,6 +1229,7 @@ void runApp(uint8_t appID){
         return;
       }
       menuID = 0;
+      return;
     }
     if(appID == 50){
       String themeOptions[] = {"White mode", "Dark mode", "Custom", "Back"};
@@ -1278,6 +1283,7 @@ void runApp(uint8_t appID){
       bool confirm = drawQuestionBox("Factory Reset", "Delete all config data?", "", "Press 'y' to confirm, 'n' to cancel");
       if (!confirm) {
         drawInfoBox("Aborted", "Factory reset cancelled", "", true, false);
+        menuID = 0;
         return;
       }
       drawInfoBox("Factory Reset", "Deleting config data...", "", false, false);
@@ -1299,6 +1305,8 @@ void runApp(uint8_t appID){
       if(WiFi.status() == WL_CONNECTED){
         if(wpa_sec_api_key.equals("")){
           drawInfoBox("Error", "No API key set", "Set it first!", true, false);
+          menuID = 0;
+          return;
         }
         else{
           drawInfoBox("Syncing", "Syncing data with WPASec", "Please wait...", false, false);
@@ -1313,6 +1321,7 @@ void runApp(uint8_t appID){
         drawInfoBox("Error", "No wifi connection", "Connect to wifi in settings!", true, false);
       }
       menuID = 0;
+      return;
     }    
     if(appID == 53){
       if(SD.exists("/cracked.json")){
@@ -1856,7 +1865,6 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-    ;
 
     canvas_main.clear(bg_color_rgb565);
     canvas_main.fillSprite(bg_color_rgb565); //Clears main display
@@ -2247,22 +2255,20 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
   
   int nextCount = 0, prevCount = 0;
   if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    delay(150); // Debounce delay
+    debounceDelay();
     runApp(toDraw[menu_current_opt].command);
   }
   if (M5Cardputer.Keyboard.isKeyPressed('`')){
-    delay(150); // Debounce delay
+    debounceDelay();
     return;
   }
   if (M5Cardputer.Keyboard.isKeyPressed('.')){
-    delay(50); // Small delay to avoid too fast increments
-    nextCount++;
-    delay(50);
+    debounceDelay();
+    nextCount = 1;
   }
   if (M5Cardputer.Keyboard.isKeyPressed(';')){
-    delay(50); // Small delay to avoid too fast increments
-    prevCount++;
-    delay(50);
+    debounceDelay();
+    prevCount = 1;
   }
 
   // Move selection by number of keypresses detected
@@ -2273,6 +2279,8 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
     menu_current_opt = (menu_current_opt + menu_len - prevCount) % menu_len;
   }
 }
+
+
 
 void logVictim(String login, String pass){
   loginCaptured = login;
