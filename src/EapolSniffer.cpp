@@ -215,8 +215,17 @@ void SnifferLoop() {
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
         String apKey = String(apName);
         logMessage("Processing captured packet for AP");
-        //logMessage(String(isNewHandshake()) + ", for new file");
-        if (isNewHandshake()) { 
+        
+        // Extract BSSID from packet (addr3, offset 16..21)
+        const uint8_t* currentBSSID = packet->data + 16;
+        
+        char bssidDebug[18];
+        snprintf(bssidDebug, sizeof(bssidDebug), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 currentBSSID[0], currentBSSID[1], currentBSSID[2], 
+                 currentBSSID[3], currentBSSID[4], currentBSSID[5]);
+        logMessage("Packet from BSSID: " + String(bssidDebug));
+        
+        if (isNewHandshake(currentBSSID)) { 
             logMessage("New handshake sequence detected.");
             // at least Msg1 + Msg2 captured before saving
             if (!skip_eapol_check){
@@ -247,6 +256,8 @@ void SnifferLoop() {
             const uint8_t* bssid = packet->data + 16;
             snprintf(bssidStr, sizeof(bssidStr), "%02X_%02X_%02X_%02X_%02X_%02X",
                      bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+
+            logMessage("Creating new file for BSSID: " + String(bssidStr) + " SSID: " + String(apName));
 
             char filename[64];
             snprintf(filename, sizeof(filename), "/handshake/%s_%s_ID_%i.pcap",
@@ -307,7 +318,7 @@ void SnifferLoop() {
 
         // ===== add captured packet or cash one, if no saveable file is present=====
         if (file) {
-            logMessage("Writing captured packet to file.");
+            logMessage("Writing captured packet to existing file for same AP.");
             // write saved packets first
             for(uint8_t i = 0; i < savedPacketCount; i++) {
                 if (savedPackets[i]) {
@@ -488,10 +499,32 @@ String getSSIDFromMac(const uint8_t* mac) {
     return String(ssid);
 }
 
-bool isNewHandshake(){
+uint8_t lastHandshakeBSSID[6] = {0};
+bool lastHandshakeBSSIDSet = false;
+
+bool isNewHandshake(const uint8_t* currentBSSID){
   unsigned long currentMillis = millis();
-  if (currentMillis - lastHandshakeMillis > HANDSHAKE_TIMEOUT) {
+  
+  // Check if BSSID changed (different AP)
+  bool bssidChanged = false;
+  if (lastHandshakeBSSIDSet) {
+    bssidChanged = (memcmp(lastHandshakeBSSID, currentBSSID, 6) != 0);
+  }
+  
+  // New handshake if: timeout expired OR different BSSID
+  if ((currentMillis - lastHandshakeMillis > HANDSHAKE_TIMEOUT) || bssidChanged) {
     lastHandshakeMillis = currentMillis;
+    memcpy(lastHandshakeBSSID, currentBSSID, 6);
+    lastHandshakeBSSIDSet = true;
+    
+    // Reset EAPOL counter for new AP
+    if (bssidChanged) {
+      extern uint8_t eapolCount;
+      eapolCount = 0;
+      logMessage("New handshake detected: different AP (EAPOL counter reset)");
+    } else {
+      logMessage("New handshake detected: timeout");
+    }
     return true;
   }
   return false;

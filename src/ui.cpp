@@ -2248,22 +2248,22 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
   
   int nextCount = 0, prevCount = 0;
   if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    delay(150); // Debounce delay
+    delay(250); // Debounce delay aumentado para navegação confortável
     runApp(toDraw[menu_current_opt].command);
   }
   if (M5Cardputer.Keyboard.isKeyPressed('`')){
-    delay(150); // Debounce delay
+    delay(250); // Debounce delay aumentado para navegação confortável
     return;
   }
   if (M5Cardputer.Keyboard.isKeyPressed('.')){
-    delay(50); // Small delay to avoid too fast increments
+    delay(100); // Delay aumentado para navegação mais confortável
     nextCount++;
-    delay(50);
+    delay(100);
   }
   if (M5Cardputer.Keyboard.isKeyPressed(';')){
-    delay(50); // Small delay to avoid too fast increments
+    delay(100); // Delay aumentado para navegação mais confortável
     prevCount++;
-    delay(50);
+    delay(100);
   }
 
   // Move selection by number of keypresses detected
@@ -2496,7 +2496,7 @@ String colorPickerUI(bool pickingText, String bg_color_toset) {
       done = true;
       break;
     }
-    delay(80);
+    delay(120);  // Delay aumentado para navegação mais confortável
   }
   return result;
 }
@@ -2570,7 +2570,7 @@ void debounceDelay(){
   }
   M5Cardputer.update();
   M5.update();
-  delay(40);
+  delay(100);  // Aumentado de 40ms para 100ms para navegação mais confortável
   M5Cardputer.update();
   M5.update();
 }
