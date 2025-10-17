@@ -7,6 +7,7 @@
 #include "networkKit.h"
 #include "EapolSniffer.h"
 #include "ui.h"
+#include "watchdog.h"
 
 String pwnagothiWhitelist[30];
 String pwnagothiMacWhitelist[30];
@@ -27,6 +28,7 @@ bool pwnagothiBegin(){
     WiFi.disconnect();
     uint32_t start = millis();
     while(millis() - start < 3000){
+        Watchdog::feed();
         M5.update();
         M5Cardputer.update();
         auto status = M5Cardputer.Keyboard.keysState();
@@ -83,6 +85,7 @@ String* parseWhitelist(uint16_t& outCount){
 
 
 void parseMacFromWhitelist() {
+  wifi_mode_t previousMode = WiFi.getMode();
   WiFi.mode(WIFI_MODE_STA);  // ensure we can scan
   int netCount = WiFi.scanNetworks(false, true);  // block, include hidden
 
@@ -107,6 +110,9 @@ void parseMacFromWhitelist() {
       pwnagothiMacWhitelist[i] = "";  // mark as not found
     }
   }
+  
+  // Restore previous WiFi mode
+  WiFi.mode(previousMode);
 }
 
 uint8_t wifiCheckInt = 0;
@@ -127,6 +133,7 @@ void pwnagothiLoop(){
         // wait a short, configurable time for scan to register (avoid immediate -2)
         unsigned long scanStart = millis();
         while (WiFi.scanComplete() < 0 && (millis() - scanStart) < (unsigned long)pwnagotchi.delay_after_wifi_scan) {
+            Watchdog::feed();
             delay(20); // small sleep so we don't busy-spin (20 ms is arbitrary small)
         }
 
@@ -204,6 +211,7 @@ void pwnagothiLoop(){
         logMessage("Waiting for clients to connect to " + attackVector);
 
         while(true){
+            Watchdog::feed();
             get_clients_list(clients, clientLen);
         
             if (millis() - startTime > pwnagotchi.client_discovery_timeout) {
@@ -273,9 +281,11 @@ void pwnagothiLoop(){
         unsigned long startTime1 = millis();
 
         while(true){
+            Watchdog::feed();
             SnifferLoop();
             if (SnifferGetClientCount() > 0) { //Eapol count
                 while (SnifferPendingPackets() > 0) {
+                    Watchdog::feed();
                     SnifferLoop();
                     updateUi(true, false);
                 }
@@ -319,7 +329,12 @@ void pwnagothiLoop(){
     setMood(1, "(z_z)", "I'll nap for " + String(pwnagotchi.nap_time /1000UL) + " seconds...");
     logMessage("(z_z) I'll nap for " + String(pwnagotchi.nap_time /1000UL) + " seconds");
     updateUi(true, false);
-    delay((unsigned long)pwnagotchi.nap_time);
+    // Non-blocking nap with watchdog feeding
+    unsigned long napStart = millis();
+    while (millis() - napStart < (unsigned long)pwnagotchi.nap_time) {
+        Watchdog::feed();
+        delay(100); // Small delay to avoid busy loop
+    }
 }
 
 

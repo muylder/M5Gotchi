@@ -21,6 +21,7 @@
 #include "logger.h"
 #include "moodLoader.h"
 #include "wpa_sec.h"
+#include "watchdog.h"
 
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
@@ -208,7 +209,7 @@ int32_t canvas_top_h;
 int32_t canvas_bot_h;
 int32_t canvas_peers_menu_h;
 int32_t canvas_peers_menu_w;
-bool keyboard_changed = false;
+volatile bool keyboard_changed = false;
 uint8_t menu_len;
 uint8_t menu_current_opt = 0;
 uint8_t menu_current_page = 1;  
@@ -430,7 +431,9 @@ void drawTopCanvas() {
   canvas_top.setTextColor(tx_color_rgb565);
   canvas_top.setColor(tx_color_rgb565);
   canvas_top.setTextDatum(top_left);
-  canvas_top.drawString("CH:" + String(WiFi.channel()) + " AP: " + String(WiFi.scanComplete()), 0, 3);
+  char status_buffer[32];
+  snprintf(status_buffer, sizeof(status_buffer), "CH:%d AP: %d", WiFi.channel(), WiFi.scanComplete());
+  canvas_top.drawString(status_buffer, 0, 3);
   canvas_top.setTextDatum(top_right);
   unsigned long ms = millis();
 
@@ -443,7 +446,7 @@ void drawTopCanvas() {
 
   // Pad with zero if needed
   char buffer[9];
-  sprintf(buffer, "%02u:%02u:%02lu", hours, minutes, seconds);
+  snprintf(buffer, sizeof(buffer), "%02u:%02u:%02lu", hours, minutes, seconds);
   canvas_top.drawString("UPS " + String(M5.Power.getBatteryLevel()) + "%  UP:" + buffer , display_w, 3);
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
@@ -456,7 +459,9 @@ void drawBottomCanvas() {
   canvas_bot.setTextDatum(top_left);
   uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
-  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures), 3, 5);
+  char pwnd_buffer[32];
+  snprintf(pwnd_buffer, sizeof(pwnd_buffer), "PWND: %u/%u", captures, allTimeCaptures);
+  canvas_bot.drawString(pwnd_buffer, 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";
@@ -522,6 +527,7 @@ void drawInfoBox(String tittle, String info, String info2, bool canBeQuit, bool 
   appRunning = true;
   debounceDelay();
   while(true){
+    Watchdog::feed();
     drawTopCanvas();
     drawBottomCanvas();
     canvas_main.fillScreen(bg_color_rgb565);
@@ -1727,6 +1733,7 @@ String userInput(String tittle, String desc, uint8_t maxLenght){
   debounceDelay();
   //bool loop = 1;
   while (true){
+    Watchdog::feed();
     drawTopCanvas();
     drawBottomCanvas();
     canvas_main.clear(bg_color_rgb565);
@@ -1797,6 +1804,7 @@ bool drawQuestionBox(String tittle, String info, String info2, String label) {
   appRunning = true;
   debounceDelay();
   while(true){
+    Watchdog::feed();
     drawTopCanvas();
     drawBottomCanvas();
     canvas_main.clear(bg_color_rgb565);
@@ -1845,6 +1853,7 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
   menu_len = menuSize;
   singlePage = false;
   while(true){
+    Watchdog::feed();
     drawTopCanvas();
     drawBottomCanvas();
     M5.update();
@@ -1865,7 +1874,7 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     canvas_main.setTextSize(2);
     char display_str[100] = "";
     for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 4)) ; j++) {
-      sprintf(display_str, "%s %s", (tempOpt == j+( (menu_current_page - 1) * 4 ) ) ? ">" : " ",
+      snprintf(display_str, sizeof(display_str), "%s %s", (tempOpt == j+( (menu_current_page - 1) * 4 ) ) ? ">" : " ",
              toDraw[j+ ( (menu_current_page - 1) * 4)].c_str());
       int y = PADDING + (j * ROW_SIZE / 2) + 20;
       canvas_main.drawString(display_str, 0, y);
@@ -1953,7 +1962,7 @@ int drawMultiChoiceLonger(String tittle, String toDraw[], uint8_t menuSize , uin
     canvas_main.setTextSize(1);
     char display_str[100] = "";
     for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 8)) ; j++) {
-      sprintf(display_str, "%s %s", (tempOpt == j+( (menu_current_page - 1) * 8 ) ) ? ">" : " ",
+      snprintf(display_str, sizeof(display_str), "%s %s", (tempOpt == j+( (menu_current_page - 1) * 8 ) ) ? ">" : " ",
              toDraw[j+ ( (menu_current_page - 1) * 8)].c_str());
       int y = 8 + (j * 20 / 2) + 20;
       canvas_main.drawString(display_str, 0, y);
@@ -2482,7 +2491,7 @@ String colorPickerUI(bool pickingText, String bg_color_toset) {
     }
     if (status.enter) {
       char hexStr[9];
-      sprintf(hexStr, "#%02X%02X%02XFF", r, g, b);
+      snprintf(hexStr, sizeof(hexStr), "#%02X%02X%02XFF", r, g, b);
       result = String(hexStr);
       done = true;
       break;
@@ -2499,6 +2508,7 @@ int brightnessPicker(){
   uint8_t rect_w = (canvas_center_x*2) - 20; 
   uint8_t rect_h = 30;
   while(true){
+    Watchdog::feed();
     drawTopCanvas();
     drawBottomCanvas();
     canvas_main.fillScreen(bg_color_rgb565);

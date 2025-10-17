@@ -1,0 +1,63 @@
+#include "pwnagothi.h"
+#include "networkKit.h"
+#include "EapolSniffer.h"
+#include <map>
+#include "src.h"
+#include "settings.h"
+
+long lastpacketsend;
+File file;
+File currentPcapFile;
+int clientCount;
+bool autoChannelSwitch;
+int currentChannel;
+PacketInfo packetInfoTable[100];
+int packetInfoCount;
+char pcapFileName[32];
+uint8_t clients[50][6];
+int userChannel;
+const unsigned long HANDSHAKE_TIMEOUT = 5000;
+
+struct pcap_hdr_s {
+  uint32_t magic_number;
+  uint16_t version_major;
+  uint16_t version_minor;
+  int32_t  thiszone;
+  uint32_t sigfigs;
+  uint32_t snaplen;
+  uint32_t network;
+} __attribute__((packed));
+
+struct pcaprec_hdr_s {
+  uint32_t ts_sec;
+  uint32_t ts_usec;
+  uint32_t incl_len;
+  uint32_t orig_len;
+} __attribute__((packed));
+
+typedef struct {
+  size_t    len;
+  uint8_t  *data;
+  uint32_t  ts_sec;
+  uint32_t  ts_usec;
+} CapturedPacket;
+
+QueueHandle_t packetQueue;
+volatile uint32_t packetCount = 0;
+
+uint32_t handshakeFileCount = 0;
+unsigned long lastHandshakeMillis = 0;
+const unsigned long handshakeTimeout = 5000;
+uint8_t eapolCount = 0; // count EAPOL frames in sequence
+
+struct APFileContext {
+  String apName;
+  File file;
+};
+
+bool beaconDetected = false;
+const uint8_t* beaconFrame;
+uint16_t beaconFrameLen = 0;
+std::map<String, APFileContext> apFiles;
+bool targetAPSet = false;
+uint8_t targetBSSID[6] = {0};

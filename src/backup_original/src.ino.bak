@@ -6,7 +6,6 @@
 #include "pwnagothi.h"
 #include "moodLoader.h"
 #include "Arduino.h"
-#include "watchdog.h"
 #ifdef LITE_VERSION
 #include "githubUpdater.h"
 #include "wpa_sec.h"
@@ -30,10 +29,6 @@ void initM5() {
 
 void setup() {
   Serial.begin(115200);
-  
-  // Initialize watchdog timer
-  Watchdog::init();
-  
   WiFi.mode(WIFI_MODE_STA);
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
   initM5();
@@ -99,8 +94,6 @@ void wakeUp() {
 
 
 void loop() {
-  Watchdog::feed(); // Feed watchdog at start of each loop iteration
-  
   unsigned long currentMillis = millis();
   M5.update();
   M5Cardputer.update();

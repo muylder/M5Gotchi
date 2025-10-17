@@ -1,0 +1,3 @@
+// Backup parcial do ui.cpp original (primeiras linhas)
+#include "M5Cardputer.h"
+#include "lgfx/v1/misc/enum.hpp"

@@ -1,0 +1,9 @@
+#include "settings.h"
+#include "ArduinoJson.h"
+#include "SD.h"
+#include "logger.h"
+#include "pwnagothi.h"
+
+String hostname = "M5";
+bool sound = true;
+int brightness = 150;
