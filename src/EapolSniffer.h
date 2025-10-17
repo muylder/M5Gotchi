@@ -25,7 +25,7 @@ void SnifferEnd();
 const PacketInfo* SnifferGetPacketInfoTable();
 void SnifferDebugMode();
 String getSSIDFromMac(const uint8_t* mac);
-bool isNewHandshake();
+bool isNewHandshake(const uint8_t* currentBSSID);
 bool isEapolFrame(const uint8_t *data, uint16_t len);
 static inline int ieee80211_hdrlen(uint16_t fc);
 uint8_t getEAPOLOrder(uint8_t* buf);
