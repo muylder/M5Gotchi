@@ -139,4 +139,5 @@ void Sound(int frequency, int duration, bool sound){
   else if (isSoundPlayed == true){
     isSoundPlayed = false;
   }
+  isSoundPlayed = false;
 }

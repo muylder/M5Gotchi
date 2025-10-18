@@ -50,10 +50,7 @@ bool pwnagothiBegin(){
 static const size_t MAX_WHITELIST = 200; // adjust to taste (30, 100, 200...)
 
 std::vector<String> parseWhitelist() {
-    // estimate JSON doc size. If whitelist can be large,
-    // increase this. But don't leave it unlimited.
-    const size_t estimatedJsonCapacity = 4096; // bytes, adapt if JSON is large
-    DynamicJsonDocument doc(estimatedJsonCapacity);
+    JsonDocument doc;
 
     DeserializationError err = deserializeJson(doc, whitelist);
     if (err) {
@@ -84,8 +81,7 @@ std::vector<String> parseWhitelist() {
 }
 
 void addToWhitelist(const String &valueToAdd) {
-    const size_t cap = 4096;
-    DynamicJsonDocument oldDoc(cap);
+    JsonDocument oldDoc;
     DeserializationError err = deserializeJson(oldDoc, whitelist);
     if (err) {
         // treat as empty array if parse fails
@@ -95,7 +91,7 @@ void addToWhitelist(const String &valueToAdd) {
     JsonArray oldArr = oldDoc.as<JsonArray>();
 
     // make new doc sized for old + one more (rough estimate)
-    DynamicJsonDocument newDoc(cap + 256);
+    JsonDocument newDoc;
     JsonArray newArr = newDoc.to<JsonArray>();
 
     size_t count = 0;
@@ -200,7 +196,7 @@ void pwnagothiLoop(){
         setMood(1, "(Y_Y)" , "I'm looking inside you " + attackVector + "...");
         updateUi(true, false);
         set_target_channel(attackVector.c_str());
-        uint8_t i = 1;
+        uint8_t i = 0;
         uint8_t currentCount = SnifferGetClientCount();
         setMac(WiFi.BSSID(wifiCheckInt));
         uint16_t targetChanel;
@@ -284,8 +280,9 @@ void pwnagothiLoop(){
                 sessionCaptures++;
                 wifiCheckInt++;
                 if(pwnagotchi.sound_on_events){
-                    Sound(2000, 200, 100);
-                    Sound(3000, 200, 150);
+                    Sound(1500, 100, true);
+                    Sound(2000, 100, true);
+                    Sound(2500, 150, true);
                 }
                 if(pwnagotchi.add_to_whitelist_on_success){
                     logMessage("Adding " + attackVector + " to whitelist");
@@ -312,7 +309,9 @@ void pwnagothiLoop(){
                 }
                 wifiCheckInt++;
                 if(pwnagotchi.sound_on_events){
-                    Sound(1000, 200, 100);
+                    Sound(800, 150, true);
+                    Sound(500, 150, true);
+                    Sound(300, 200, true);
                 }
                 break;
             }

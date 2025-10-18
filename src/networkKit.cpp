@@ -257,8 +257,11 @@ void deauth_promiscuous_rx_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 bool is_client_known(uint8_t *mac) {
+  if(memcmp(target_mac, mac, 6) == 0){
+    return true;
+  }
   for (int i = 0; i < client_count; i++) {
-    if (memcmp(network_clients[i], mac, 6) == 0) {
+    if (memcmp(network_clients[i], mac, 6) == 0 ) {
       return true;
     }
   }

@@ -1875,14 +1875,20 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     canvas_main.setCursor(1, PADDING + 1);
     canvas_main.println(tittle);
     canvas_main.setTextSize(2);
-    char display_str[100] = "";
+    char display_str[256] = ""; // Increased buffer size
     uint8_t startIdx = (menu_current_page - 1) * 4;
-    uint8_t itemsToShow = menu_len > startIdx ? menu_len - startIdx : 0;
-    if (itemsToShow > 4) itemsToShow = 4; // Show max 4 items per page
-    for (uint8_t j = 0; j < itemsToShow; j++) {
+    if (startIdx >= menuSize) startIdx = 0; // Prevent overflow
+    
+    uint8_t remainingItems = (menuSize > startIdx) ? menuSize - startIdx : 0;
+    uint8_t itemsToShow = min(remainingItems, (uint8_t)4); // Show max 4 items per page
+    
+    for (uint8_t j = 0; j < itemsToShow && (startIdx + j) < menuSize; j++) {
       uint8_t idx = startIdx + j;
-      if (idx >= menu_len) break;
-      sprintf(display_str, "%s %s", (tempOpt == idx) ? ">" : " ", toDraw[idx].c_str());
+      String itemText = toDraw[idx];
+      if (itemText.length() > 40) { // Truncate long strings
+        itemText = itemText.substring(0, 37) + "...";
+      }
+      snprintf(display_str, sizeof(display_str), "%s %s", (tempOpt == idx) ? ">" : " ", itemText.c_str());
       int y = PADDING + (j * ROW_SIZE / 2) + 20;
       canvas_main.drawString(display_str, 0, y);
     }
@@ -2075,7 +2081,6 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
         }
         drawTopCanvas();
         drawBottomCanvas();
-        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2263,12 +2268,12 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
     return;
   }
   if (M5Cardputer.Keyboard.isKeyPressed('.')){
-    debounceDelay();
     nextCount = 1;
+    debounceDelay();
   }
   if (M5Cardputer.Keyboard.isKeyPressed(';')){
-    debounceDelay();
     prevCount = 1;
+    debounceDelay();
   }
 
   // Move selection by number of keypresses detected

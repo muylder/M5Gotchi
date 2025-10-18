@@ -7,7 +7,6 @@
 
 long lastpacketsend;
 File file;
-File currentPcapFile;
 int clientCount;
 bool autoChannelSwitch;
 int currentChannel;
@@ -44,8 +43,6 @@ typedef struct {
 
 QueueHandle_t packetQueue;
 volatile uint32_t packetCount = 0;
-
-uint32_t handshakeFileCount = 0;
 unsigned long lastHandshakeMillis = 0;
 const unsigned long handshakeTimeout = 5000;
 uint8_t eapolCount = 0; // count EAPOL frames in sequence
@@ -217,6 +214,9 @@ int SnifferPendingPackets() {
 }
 
 void SnifferLoop() {
+    // persistent lengths for cached packets to ensure correct write sizes
+    static size_t savedPacketLens[10] = {0};
+
     CapturedPacket *packet = NULL;
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
         String apKey = String(apName);
@@ -233,6 +233,7 @@ void SnifferLoop() {
                         logMessage("Incomplete handshake sequence, skipping...");
                         free(packet->data);
                         free(packet);
+
                         return;
                     }
                 }
@@ -311,7 +312,7 @@ void SnifferLoop() {
             }
         }
 
-        // ===== add captured packet or cash one, if no saveable file is present=====
+        // ===== add captured packet or cache one, if no saveable file is present=====
         if (file) {
             logMessage("Writing captured packet to file.");
             // write saved packets first
@@ -322,13 +323,16 @@ void SnifferLoop() {
                     uint64_t ts = esp_timer_get_time();
                     recHeader.ts_sec   = ts / 1000000;
                     recHeader.ts_usec  = ts % 1000000;
-                    recHeader.incl_len = packet->len;
-                    recHeader.orig_len = packet->len;
+                    size_t len = savedPacketLens[i];
+                    if (len == 0) len = packet->len; // fallback safety
+                    recHeader.incl_len = len;
+                    recHeader.orig_len = len;
                     file.write((uint8_t*)&recHeader, sizeof(recHeader));
-                    file.write(savedPackets[i], packet->len);
+                    file.write(savedPackets[i], len);
                     file.flush();
                     free(savedPackets[i]);
                     savedPackets[i] = nullptr;
+                    savedPacketLens[i] = 0;
                 }
             }
             logMessage("Writing current packet to file.");
@@ -343,11 +347,12 @@ void SnifferLoop() {
             file.flush();
         }
         else{
-            logMessage("File not open, cannot write packet., Cashing packet.");
+            logMessage("File not open, cannot write packet, caching packet.");
             if (savedPacketCount < 10) {
                 savedPackets[savedPacketCount] = (uint8_t *) malloc(packet->len);
                 if (savedPackets[savedPacketCount]) {
                     memcpy(savedPackets[savedPacketCount], packet->data, packet->len);
+                    savedPacketLens[savedPacketCount] = packet->len;
                     savedPacketCount++;
                 }
             }
@@ -392,11 +397,24 @@ uint8_t getEAPOLOrder(uint8_t *buf) {
     bool install = key_info & (1 << 6);
     bool secure  = key_info & (1 << 9);
 
-    if (!mic && ack && !install) return 1; // Message 1
-    if (mic && !ack && !install && !secure) return 2; // Message 2
-    if (mic && ack && install) return 3; // Message 3
-    if (mic && !ack && !install && secure) return 4; // Message 4
+    if (!mic && ack && !install) {
+        logMessage("EAPOL Message 1 detected");
+        return 1; // Message 1
+    }
+    if (mic && !ack && !install && !secure) {
+        logMessage("EAPOL Message 2 detected");
+        return 2; // Message 2
+    }
+    if (mic && ack && install) {
+        logMessage("EAPOL Message 3 detected");
+        return 3; // Message 3
+    }
+    if (mic && !ack && !install && secure) {
+        logMessage("EAPOL Message 4 detected");
+        return 4; // Message 4
+    }
 
+    logMessage("Unknown EAPOL message type");
     return 0; // Unknown
 }
 
@@ -444,8 +462,10 @@ void SnifferEnd() {
         entry.second.file.close();
       }
     }
-
     apFiles.clear();
+    packetCount = 0;
+    beaconDetected = false;
+    eapolCount = 0;
 
     logMessage("Sniffer and Wi-Fi have been turned off.");
 }
