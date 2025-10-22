@@ -9,8 +9,6 @@
 #include "ui.h"
 #include <vector>
 
-String pwnagothiWhitelist[30];
-String pwnagothiMacWhitelist[30];
 bool pwnagothiModeEnabled;
 bool pwnagothiScan = true;
 bool nextWiFiCheck = false;
@@ -47,7 +45,7 @@ bool pwnagothiBegin(){
 }
 
 // maximum entries we'll accept from the JSON whitelist to avoid OOM
-static const size_t MAX_WHITELIST = 200; // adjust to taste (30, 100, 200...)
+static const size_t MAX_WHITELIST = 200;
 
 std::vector<String> parseWhitelist() {
     JsonDocument doc;
@@ -112,34 +110,6 @@ void addToWhitelist(const String &valueToAdd) {
     saveSettings();
 }
 
-
-void parseMacFromWhitelist() {
-  WiFi.mode(WIFI_MODE_STA);  // ensure we can scan
-  int netCount = WiFi.scanNetworks(false, true);  // block, include hidden
-
-  for (int i = 0; i < 30; i++) {
-    if (pwnagothiWhitelist[i].length() == 0) continue;  // skip unused slots
-
-    bool found = false;
-    for (int n = 0; n < netCount; n++) {
-      if (WiFi.SSID(n) == pwnagothiWhitelist[i]) {
-        uint8_t* mac = WiFi.BSSID(n);
-        char macStr[18];
-        snprintf(macStr, sizeof(macStr),
-                 "%02X:%02X:%02X:%02X:%02X:%02X",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        pwnagothiMacWhitelist[i] = String(macStr);
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      pwnagothiMacWhitelist[i] = "";  // mark as not found
-    }
-  }
-}
-
 uint8_t wifiCheckInt = 0;
 
 void pwnagothiLoop(){
@@ -154,19 +124,18 @@ void pwnagothiLoop(){
             logMessage("(*_*) Scan compleated proceding to attack!");
             setMood(1, "(*_*)", "Scan compleated proceding to attack!");
             updateUi(true, false);
-            delayWithUI(pwnagotchi.delay_after_wifi_scan);
+            delay(pwnagotchi.delay_after_wifi_scan);
         }
     }
     else{
         setMood(1, "(z-z)", "waiting...");
         updateUi(true, false);
         delay(pwnagotchi.delay_before_switching_target);
-
         String attackVector;
         if(!WiFi.SSID(0)){
             logMessage("('_') No networks found. Waiting and retrying");
             updateUi(true, false);
-            delayWithUI(pwnagotchi.delay_after_no_networks_found);
+            delay(pwnagotchi.delay_after_no_networks_found);
             pwnagothiScan = true;
         }
         if(wifiCheckInt < WiFi.scanComplete()){
@@ -180,7 +149,7 @@ void pwnagothiLoop(){
         setMood(1, "(@_@)", "Oh, hello " + attackVector + ", don't hide - I can still see you!!!");
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
         updateUi(true, false);
-        delayWithUI(pwnagotchi.delay_after_picking_target);
+        delay(pwnagotchi.delay_after_picking_target);
         std::vector<String> whitelistParsed = parseWhitelist();
         for (size_t i = 0; i < whitelistParsed.size(); ++i) {
             logMessage("Whitelist check...");
@@ -322,16 +291,6 @@ void pwnagothiLoop(){
     updateUi(true, false);
     delay(pwnagotchi.nap_time);
 } 
-
-void delayWithUI(uint16_t delayTime){
-    logMessage("Waiting " + String(delayTime) + "ms");
-    for(uint16_t timer; timer<=delayTime; timer++){
-        M5.update();
-        M5Cardputer.update();
-        updateUi(true, false);
-        delay(1);  // Delay for 1 ms to avoid blocking the UI
-    }
-}
 
 void removeItemFromWhitelist(String valueToRemove) {
     JsonDocument oldList;
