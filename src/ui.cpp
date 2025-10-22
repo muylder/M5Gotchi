@@ -226,6 +226,10 @@ uint16_t tx_color_rgb565 ;//= TFT_BLACK;
 bool sleep_mode = false;
 SemaphoreHandle_t buttonSemaphore;
 
+void esp_will_beg_for_its_life() {
+  int *ptr = nullptr;
+  *ptr = 42; // hehehe
+}
 
 void buttonTask(void *param) {
   bool dimmed = false;
@@ -456,7 +460,8 @@ void drawBottomCanvas() {
   canvas_bot.setTextDatum(top_left);
   uint16_t captures = sessionCaptures;
   uint16_t allTimeCaptures = pwned_ap;
-  canvas_bot.drawString("PWND: " + String(captures)+ "/" + String(allTimeCaptures), 3, 5);
+  String shortWifiName = lastPwnedAP.length() > 7 ? lastPwnedAP.substring(0, 7) + "..." : lastPwnedAP;
+  canvas_bot.drawString("PWND: " + String(captures) + "/" + String(allTimeCaptures) + (shortWifiName.length() > 0 ? " ( " + shortWifiName + " )" : ""), 3, 5);
   String wifiStatus;
   if(WiFi.status() == WL_NO_SHIELD){
     wifiStatus = "off";
@@ -976,7 +981,6 @@ void runApp(uint8_t appID){
         if(answear){
           drawInfoBox("INITIALIZING", "Pwnagothi mode initialization", "please wait...", false, true);
           if(pwnagothiBegin()){
-            drawInfoBox("SUCCESS", "Press ENTER to begin", "operation", true, false);
             pwnagothiMode = true;
           }
           else{
@@ -1047,6 +1051,7 @@ void runApp(uint8_t appID){
         }
         drawInfoBox("Name invalid", "Null inputed,", "operation abort", true, false);
         menuID = 0;
+        return;
     }
     if(appID == 41){
       brightnessPicker();
@@ -1070,22 +1075,7 @@ void runApp(uint8_t appID){
     }
     if(appID == 43){
       WiFi.mode(WIFI_STA);
-      if(!(savedApSSID.equals("") && savedAPPass.equals(""))){
-        WiFi.begin(savedApSSID, savedAPPass);
-        uint8_t counter;
-        counter = 0;
-        while (counter<=10 && !WiFi.isConnected()) {
-          delay(1000);
-          drawInfoBox("Connecting", "Please wait...", "You will be soon redirected ", false, false);
-          counter++;
-        }
-        
-        if(WiFi.isConnected()){
-          drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
-          menuID = 0;
-          return;
-        }
-      }
+      drawInfoBox("Scanning...", "Scanning for networks...", "Please wait", false, false);
       int numNetworks = WiFi.scanNetworks();
       String wifinets[50];
       if (numNetworks == 0) {
@@ -1097,6 +1087,22 @@ void runApp(uint8_t appID){
         // Przechodzimy przez wszystkie znalezione sieci i zapisujemy ich nazwy w liście
         for (int i = 0; i < numNetworks; i++) {
           String ssid = WiFi.SSID(i);
+          logMessage(WiFi.SSID(i) + " =? " + savedApSSID);
+          if(WiFi.SSID(i) == (savedApSSID)){
+            WiFi.begin(savedApSSID, savedAPPass);
+            uint8_t counter;
+            while (counter<=10 && !WiFi.isConnected()) {
+              delay(1000);
+              drawInfoBox("Connecting", "Connecting to " + savedApSSID, "You'll soon be redirected ", false, false);
+              counter++;
+            }
+            counter = 0;
+            if(WiFi.isConnected()){
+              drawInfoBox("Connected", "Connected succesfully to", String(WiFi.SSID()) , true, false);
+              menuID = 0;
+              return;
+            }
+          }
           wifinets[i] = String(ssid);
           logMessage(wifinets[i]);
         }
@@ -1199,11 +1205,12 @@ void runApp(uint8_t appID){
     }
     if(appID == 49){
       String options[] = {"Enable", "Disable", "Back"};
-      int choice = drawMultiChoice("Skip EAPOL check", options, 3, 6, 0);
+      int choice = drawMultiChoice("EAPOL integrity check", options, 3, 6, 0);
       if (choice == 0) {
         skip_eapol_check = false;
         if (saveSettings()) {
           drawInfoBox("Success", "EAPOL check enabled", "", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
@@ -1212,6 +1219,7 @@ void runApp(uint8_t appID){
         skip_eapol_check = true;
         if (saveSettings()) {
           drawInfoBox("Success", "EAPOL check disabled", "", true, false);
+          menuID = 0;
           return;
         } else {
           drawInfoBox("ERROR", "Save setting failed!", "Check SD Card", true, false);
@@ -1221,6 +1229,7 @@ void runApp(uint8_t appID){
         return;
       }
       menuID = 0;
+      return;
     }
     if(appID == 50){
       String themeOptions[] = {"White mode", "Dark mode", "Custom", "Back"};
@@ -1274,6 +1283,7 @@ void runApp(uint8_t appID){
       bool confirm = drawQuestionBox("Factory Reset", "Delete all config data?", "", "Press 'y' to confirm, 'n' to cancel");
       if (!confirm) {
         drawInfoBox("Aborted", "Factory reset cancelled", "", true, false);
+        menuID = 0;
         return;
       }
       drawInfoBox("Factory Reset", "Deleting config data...", "", false, false);
@@ -1295,6 +1305,8 @@ void runApp(uint8_t appID){
       if(WiFi.status() == WL_CONNECTED){
         if(wpa_sec_api_key.equals("")){
           drawInfoBox("Error", "No API key set", "Set it first!", true, false);
+          menuID = 0;
+          return;
         }
         else{
           drawInfoBox("Syncing", "Syncing data with WPASec", "Please wait...", false, false);
@@ -1309,6 +1321,7 @@ void runApp(uint8_t appID){
         drawInfoBox("Error", "No wifi connection", "Connect to wifi in settings!", true, false);
       }
       menuID = 0;
+      return;
     }    
     if(appID == 53){
       if(SD.exists("/cracked.json")){
@@ -1451,7 +1464,7 @@ void runApp(uint8_t appID){
           return;
         }
         else if(choice >= 14){
-          bool valueToSet = getBoolInput(personality_options[choice], "Press y or n, then ENTER", false);
+          bool valueToSet = getBoolInput(personality_options[choice], "Press t or f, then ENTER", false);
           switch (choice) {
             case 14:
               pwnagotchi.sound_on_events = valueToSet;
@@ -1852,7 +1865,6 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     keyboard_changed = M5Cardputer.Keyboard.isChange();
     if(keyboard_changed){Sound(10000, 100, sound);}
     Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
-    ;
 
     canvas_main.clear(bg_color_rgb565);
     canvas_main.fillSprite(bg_color_rgb565); //Clears main display
@@ -1863,10 +1875,20 @@ int drawMultiChoice(String tittle, String toDraw[], uint8_t menuSize , uint8_t p
     canvas_main.setCursor(1, PADDING + 1);
     canvas_main.println(tittle);
     canvas_main.setTextSize(2);
-    char display_str[100] = "";
-    for (uint8_t j = 0; j < (menu_len - ((menu_current_page - 1) * 4)) ; j++) {
-      sprintf(display_str, "%s %s", (tempOpt == j+( (menu_current_page - 1) * 4 ) ) ? ">" : " ",
-             toDraw[j+ ( (menu_current_page - 1) * 4)].c_str());
+    char display_str[256] = ""; // Increased buffer size
+    uint8_t startIdx = (menu_current_page - 1) * 4;
+    if (startIdx >= menuSize) startIdx = 0; // Prevent overflow
+    
+    uint8_t remainingItems = (menuSize > startIdx) ? menuSize - startIdx : 0;
+    uint8_t itemsToShow = min(remainingItems, (uint8_t)4); // Show max 4 items per page
+    
+    for (uint8_t j = 0; j < itemsToShow && (startIdx + j) < menuSize; j++) {
+      uint8_t idx = startIdx + j;
+      String itemText = toDraw[idx];
+      if (itemText.length() > 40) { // Truncate long strings
+        itemText = itemText.substring(0, 37) + "...";
+      }
+      snprintf(display_str, sizeof(display_str), "%s %s", (tempOpt == idx) ? ">" : " ", itemText.c_str());
       int y = PADDING + (j * ROW_SIZE / 2) + 20;
       canvas_main.drawString(display_str, 0, y);
     }
@@ -2059,7 +2081,6 @@ String* makeList(String windowName, uint8_t appid, bool addln, uint8_t maxEntryL
         }
         drawTopCanvas();
         drawBottomCanvas();
-        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2239,22 +2260,20 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
   
   int nextCount = 0, prevCount = 0;
   if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    delay(150); // Debounce delay
+    debounceDelay();
     runApp(toDraw[menu_current_opt].command);
   }
   if (M5Cardputer.Keyboard.isKeyPressed('`')){
-    delay(150); // Debounce delay
+    debounceDelay();
     return;
   }
   if (M5Cardputer.Keyboard.isKeyPressed('.')){
-    delay(50); // Small delay to avoid too fast increments
-    nextCount++;
-    delay(50);
+    nextCount = 1;
+    debounceDelay();
   }
   if (M5Cardputer.Keyboard.isKeyPressed(';')){
-    delay(50); // Small delay to avoid too fast increments
-    prevCount++;
-    delay(50);
+    prevCount = 1;
+    debounceDelay();
   }
 
   // Move selection by number of keypresses detected
@@ -2265,6 +2284,8 @@ void drawMenuList(menu toDraw[], uint8_t menuIDPriv, uint8_t menu_size) {
     menu_current_opt = (menu_current_opt + menu_len - prevCount) % menu_len;
   }
 }
+
+
 
 void logVictim(String login, String pass){
   loginCaptured = login;
@@ -2326,19 +2347,20 @@ inline void updateM5(){
 
 #ifndef LITE_VERSION
 
+#include <vector>
+
 void editWhitelist(){
-  uint16_t writeID = 0;
-  String* whitelist = parseWhitelist(writeID);
+  std::vector<String> whitelist = parseWhitelist();
+  uint16_t writeID = whitelist.size();
   String list[] = {"Add element", "Remove element" , "Done", "Preview"};
   debounceDelay();
   while(true){
     initVars();
     logMessage("WRITE ID: " + String(writeID));
-    String* listToReturn = parseWhitelist(writeID);
-    ;
+    std::vector<String> listToReturn = parseWhitelist();
     s8_t choice = drawMultiChoice("Whitelist editor", list, 4 , 0, 0);
     if (choice==0){
-      String tempText = userInput("Add value:", "", 12);
+      String tempText = userInput("Add value:", "", 20);
       addToWhitelist(tempText);
       writeID++;
     }
@@ -2348,7 +2370,10 @@ void editWhitelist(){
       ESP.restart();
     }
     else if (choice==1){
-      s16_t idOfItemToRemove = drawMultiChoice("Remove element", listToReturn, writeID, 0, 0);
+      // Convert vector to array for drawMultiChoice
+      String tempArr[listToReturn.size()];
+      for (size_t i = 0; i < listToReturn.size(); ++i) tempArr[i] = listToReturn[i];
+      s16_t idOfItemToRemove = drawMultiChoice("Remove element", tempArr, writeID, 0, 0);
       if(idOfItemToRemove == -1){
         continue;
       }
@@ -2359,7 +2384,7 @@ void editWhitelist(){
           writeID = writeID - 1;
         }
         // Re-parse whitelist to update local array after deletion
-        listToReturn = parseWhitelist(writeID);
+        listToReturn = parseWhitelist();
       }
     }
     else if (choice==3){
@@ -2372,7 +2397,6 @@ void editWhitelist(){
         }
         drawTopCanvas();
         drawBottomCanvas();
-        ;
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
         keyboard_changed = M5Cardputer.Keyboard.isChange();
         if(keyboard_changed){Sound(10000, 100, sound);}  
@@ -2384,7 +2408,10 @@ void editWhitelist(){
         M5.update();
         M5Cardputer.update();
         if(isOkPressed()){break;}
-        drawList(listToReturn, writeID);
+        // Convert vector to array for drawList
+        String tempArr[listToReturn.size()];
+        for (size_t i = 0; i < listToReturn.size(); ++i) tempArr[i] = listToReturn[i];
+        drawList(tempArr, writeID);
         pushAll();
         drawMenu();
       }

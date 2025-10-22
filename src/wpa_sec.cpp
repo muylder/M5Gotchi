@@ -105,11 +105,11 @@ std::vector<CrackedEntry> getCrackedEntries() {
 
     JsonArray arr = doc.as<JsonArray>();
     for (JsonVariant v : arr) {
-        if (v.containsKey("ssid") && v.containsKey("password")) {
+        if (v["ssid"].is<String>() && v["password"].is<String>()) {
             CrackedEntry entry;
             entry.ssid = v["ssid"].as<String>();
             entry.password = v["password"].as<String>();
-            entry.bssid = v.containsKey("bssid") ? v["bssid"].as<String>() : "";
+            entry.bssid = v["bssid"].is<String>() ? v["bssid"].as<String>() : "";
             entries.push_back(entry);
         }
     }

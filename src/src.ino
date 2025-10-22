@@ -31,6 +31,7 @@ void setup() {
   Serial.begin(115200);
   WiFi.mode(WIFI_MODE_STA);
   sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  
+  logMessage("System booting...");
   initM5();
   initVars();
   M5.Display.setBrightness(brightness);
@@ -76,7 +77,7 @@ void setup() {
   #endif
   #endif
 
-  if(pwnagothiMode) {
+  if(pwnagothiModeEnabled) {
     logMessage("Pwnagothi mode enabled");
     pwnagothiBegin();
   } else {
@@ -97,6 +98,9 @@ void loop() {
   unsigned long currentMillis = millis();
   M5.update();
   M5Cardputer.update();
+  if(M5Cardputer.Keyboard.isKeyPressed(KEY_OPT) && M5Cardputer.Keyboard.isKeyPressed(KEY_LEFT_CTRL) && M5Cardputer.Keyboard.isKeyPressed(KEY_FN)){
+    esp_will_beg_for_its_life();
+  }
   updateUi(true);
   if(!pwnagothiMode)  {
     if (currentMillis >= interval) {
@@ -135,4 +139,5 @@ void Sound(int frequency, int duration, bool sound){
   else if (isSoundPlayed == true){
     isSoundPlayed = false;
   }
+  isSoundPlayed = false;
 }

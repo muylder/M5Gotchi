@@ -23,6 +23,7 @@ String wpa_sec_api_key = "";
 bool lite_mode_wpa_sec_sync_on_startup = false;
 bool sd_logging = false;
 bool toogle_pwnagothi_with_gpio0 = false;
+String lastPwnedAP = "";
 
 // struct personality{
 //     uint16_t nap_time;
@@ -52,10 +53,10 @@ personality pwnagotchi = {
     5000,   // delay_after_no_networks_found
     1000,   // delay_after_attack_fail
     3000,   // delay_after_successful_attack
-    80,     // deauth_packets_sent
+    150,     // deauth_packets_sent
     50,    // delay_after_deauth
     50,    // delay_after_picking_target
-    3000,   // delay_before_switching_target
+    1000,   // delay_before_switching_target
     100,  // delay_after_client_found
     true,   // sound_on_events
     true,   // deauth_on
@@ -286,9 +287,7 @@ bool initVars() {
         if (config["whitelist"].is<const char*>()) whitelist = String(config["whitelist"].as<const char*>());
         else configChanged = true;
 
-        if (config["auto_mode_on_startup"].is<bool>()) {
-            pwnagothiMode = config["auto_mode_on_startup"];
-            pwnagothiModeEnabled = config["auto_mode_on_startup"];
+        if (config["auto_mode_on_startup"].is<bool>()) {pwnagothiModeEnabled = config["auto_mode_on_startup"];
         } else configChanged = true;
 
         if (config["bg_color"].is<const char*>()) bg_color = String(config["bg_color"].as<const char*>());

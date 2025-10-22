@@ -7,7 +7,6 @@
 
 long lastpacketsend;
 File file;
-File currentPcapFile;
 int clientCount;
 bool autoChannelSwitch;
 int currentChannel;
@@ -44,8 +43,6 @@ typedef struct {
 
 QueueHandle_t packetQueue;
 volatile uint32_t packetCount = 0;
-
-uint32_t handshakeFileCount = 0;
 unsigned long lastHandshakeMillis = 0;
 const unsigned long handshakeTimeout = 5000;
 uint8_t eapolCount = 0; // count EAPOL frames in sequence
@@ -60,7 +57,7 @@ const uint8_t* beaconFrame;
 uint16_t beaconFrameLen = 0;
 std::map<String, APFileContext> apFiles;
 bool targetAPSet = false;
-uint8_t targetBSSID[6] = {0};
+uint8_t targetBSSID[6];
 
 void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (type != WIFI_PKT_MGMT && type != WIFI_PKT_DATA && type != WIFI_PKT_CTRL) {
@@ -77,6 +74,10 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     uint16_t fc = payload[0] | (payload[1] << 8);
     uint8_t ftype    = (fc >> 2) & 0x3;   // 0=mgmt,1=ctrl,2=data
     uint8_t fsubtype = (fc >> 4) & 0xF;
+
+    // ---- Extract BSSID from beacon ----
+    // In beacon frame: BSSID = addr3 = offset 16..21
+    const uint8_t *beaconBSSID = &beaconFrame[16];
 
     // ---- Detect beacon ----
     if (ftype == 0 && fsubtype == 8 && !beaconDetected) { // mgmt + beacon
@@ -106,9 +107,7 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
     // ---- Only continue if beacon captured ----
     if (!beaconDetected) return;
 
-    // ---- Extract BSSID from beacon ----
-    // In beacon frame: BSSID = addr3 = offset 16..21
-    const uint8_t *beaconBSSID = &beaconFrame[16];
+    
 
     // ---- Look for EAPOL ----
     if (len >= 32) {
@@ -119,8 +118,10 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
             // ---- Extract source/dest BSSID to match ----
             // In data frames: addr1 = dst, addr2 = src, addr3 = BSSID
             const uint8_t *pktBSSID = &payload[16];
+            logMessage("EAPOL Source:" + macToString(pktBSSID));
 
             if (memcmp(pktBSSID, beaconBSSID, 6) != 0) {
+                logMessage("EAPOL Detected, but bssids do not match.");
                 return; // not our AP
             }
 
@@ -155,11 +156,13 @@ void IRAM_ATTR wifi_sniffer_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 void setTargetAP(uint8_t* bssid) {
+    logMessage("Target for sniffer set to: " + macToString(bssid));
     memcpy(targetBSSID, bssid, 6);
     targetAPSet = true;
 }
 
 void clearTargetAP() {
+    logMessage("Target for sniffer cleared");
     memset(targetBSSID, 0, 6);
     targetAPSet = false;
 }
@@ -211,6 +214,9 @@ int SnifferPendingPackets() {
 }
 
 void SnifferLoop() {
+    // persistent lengths for cached packets to ensure correct write sizes
+    static size_t savedPacketLens[10] = {0};
+
     CapturedPacket *packet = NULL;
     if (xQueueReceive(packetQueue, &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
         String apKey = String(apName);
@@ -227,6 +233,7 @@ void SnifferLoop() {
                         logMessage("Incomplete handshake sequence, skipping...");
                         free(packet->data);
                         free(packet);
+
                         return;
                     }
                 }
@@ -305,7 +312,7 @@ void SnifferLoop() {
             }
         }
 
-        // ===== add captured packet or cash one, if no saveable file is present=====
+        // ===== add captured packet or cache one, if no saveable file is present=====
         if (file) {
             logMessage("Writing captured packet to file.");
             // write saved packets first
@@ -316,13 +323,16 @@ void SnifferLoop() {
                     uint64_t ts = esp_timer_get_time();
                     recHeader.ts_sec   = ts / 1000000;
                     recHeader.ts_usec  = ts % 1000000;
-                    recHeader.incl_len = packet->len;
-                    recHeader.orig_len = packet->len;
+                    size_t len = savedPacketLens[i];
+                    if (len == 0) len = packet->len; // fallback safety
+                    recHeader.incl_len = len;
+                    recHeader.orig_len = len;
                     file.write((uint8_t*)&recHeader, sizeof(recHeader));
-                    file.write(savedPackets[i], packet->len);
+                    file.write(savedPackets[i], len);
                     file.flush();
                     free(savedPackets[i]);
                     savedPackets[i] = nullptr;
+                    savedPacketLens[i] = 0;
                 }
             }
             logMessage("Writing current packet to file.");
@@ -337,11 +347,12 @@ void SnifferLoop() {
             file.flush();
         }
         else{
-            logMessage("File not open, cannot write packet., Cashing packet.");
+            logMessage("File not open, cannot write packet, caching packet.");
             if (savedPacketCount < 10) {
                 savedPackets[savedPacketCount] = (uint8_t *) malloc(packet->len);
                 if (savedPackets[savedPacketCount]) {
                     memcpy(savedPackets[savedPacketCount], packet->data, packet->len);
+                    savedPacketLens[savedPacketCount] = packet->len;
                     savedPacketCount++;
                 }
             }
@@ -386,11 +397,24 @@ uint8_t getEAPOLOrder(uint8_t *buf) {
     bool install = key_info & (1 << 6);
     bool secure  = key_info & (1 << 9);
 
-    if (!mic && ack && !install) return 1; // Message 1
-    if (mic && !ack && !install && !secure) return 2; // Message 2
-    if (mic && ack && install) return 3; // Message 3
-    if (mic && !ack && !install && secure) return 4; // Message 4
+    if (!mic && ack && !install) {
+        logMessage("EAPOL Message 1 detected");
+        return 1; // Message 1
+    }
+    if (mic && !ack && !install && !secure) {
+        logMessage("EAPOL Message 2 detected");
+        return 2; // Message 2
+    }
+    if (mic && ack && install) {
+        logMessage("EAPOL Message 3 detected");
+        return 3; // Message 3
+    }
+    if (mic && !ack && !install && secure) {
+        logMessage("EAPOL Message 4 detected");
+        return 4; // Message 4
+    }
 
+    logMessage("Unknown EAPOL message type");
     return 0; // Unknown
 }
 
@@ -438,8 +462,10 @@ void SnifferEnd() {
         entry.second.file.close();
       }
     }
-
     apFiles.clear();
+    packetCount = 0;
+    beaconDetected = false;
+    eapolCount = 0;
 
     logMessage("Sniffer and Wi-Fi have been turned off.");
 }

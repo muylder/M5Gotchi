@@ -1,8 +1,21 @@
 #pragma once
 #include <Arduino.h>
 #include <SPI.h>
+#include "logger.h"
 
-#define CURRENT_VERSION "0.4.1"
+extern "C" {
+  #include "esp_heap_caps.h"
+}
+void printHeapInfo() {
+    logMessage("Free heap: " + String(ESP.getFreeHeap()));
+    logMessage("Chip PSRAM: " + String(psramFound() ? "yes" : "no"));
+    if (psramFound()) {
+        logMessage("Free PSRAM (approx): " + String(ESP.getPsramSize()));
+    }
+}
+
+
+#define CURRENT_VERSION "0.4.3"
 #define NORMAL_JSON_URL "https://devsur11.github.io/M5Gotchi/firmware/firmware.json"
 #define LITE_JSON_URL   "https://devsur11.github.io/M5Gotchi/firmware/lite.json"
 #define TEMP_DIR        "/temp"
@@ -71,3 +84,4 @@ extern personality pwnagotchi;
 extern bool sd_logging;
 extern bool toogle_pwnagothi_with_gpio0;
 extern bool lite_mode_wpa_sec_sync_on_startup;
+extern String lastPwnedAP;
